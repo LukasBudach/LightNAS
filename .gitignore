@@ -1,3 +1,8 @@
+### custom items ###
+data/
+
+
+
 ###Python gitignore entries###
 # Byte-compiled / optimized / DLL files
 __pycache__/
