@@ -1,4 +1,5 @@
 from bmxnet_examples.binary_models.meliusnet import meliusnet22
+from models.meliusnet_enas import meliusnet22_enas
 from autogluon import ImageClassification as task
 import gluoncv as gcv
 import autogluon as ag
@@ -55,7 +56,7 @@ def train_alexnet(epochs):
 
 
 def train_meliusnet(epochs):
-    net = meliusnet22()
+    net = meliusnet22_enas()
 
     #dataset = CIFAR10(DATASET_PATH+'/cifar10')
     #net.initialize()
@@ -66,14 +67,9 @@ def train_meliusnet(epochs):
              output_directory='data/', batch_size=128, net=ag.space.Categorical(net), num_trials=1)
 
 def train_meliusnet_enas(epochs):
-    net = meliusnet22()
+    mynet = meliusnet22_enas().enas_sequential
 
-    mynet = ENAS_Sequential(
-        ResUnit(3, 3, hidden_channels=3, kernel=1, stride=1, with_zero=True),
-        net
-    )
     mynet.initialize()
-
     x = mx.nd.random.uniform(shape=(1, 3, 32, 32))
     mynet(x)
     y = mynet.evaluate_latency(x)
@@ -81,7 +77,7 @@ def train_meliusnet_enas(epochs):
                                                                                                   mynet.latency))
     mynet.nparams
 
-    scheduler = ENAS_Scheduler(mynet, train_set='cifar10', batch_size=128, num_gpus=1,
+    scheduler = ENAS_Scheduler(mynet, train_set='cifar10', batch_size=32, num_gpus=1,
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3,
                                plot_frequency=10, update_arch_frequency=5)
     scheduler.run()

@@ -21,32 +21,42 @@
 from mxnet.gluon import HybridBlock, nn
 from autogluon.contrib.enas import *
 
-from binary_models.basenet_dense import *
+from bmxnet_examples.binary_models.basenet_dense import *
+
+from models.basenet_dense_enas import BaseNetDenseEnas
+
+import autogluon as ag
 
 
-__all__ = ['MeliusNet', 'MeliusNetParameters', 'ImprovementBlock',
-           'meliusnet_flex', 'meliusnet22', 'meliusnet29', 'meliusnet42', 'meliusnet59',
-           'meliusnet_a', 'meliusnet_b', 'meliusnet_c']
+__all__ = ['MeliusNetEnas', 'MeliusNetEnasParameters', 'ImprovementBlockEnas',
+           'meliusnet_flex_enas', 'meliusnet22_enas', 'meliusnet29_enas', 'meliusnet42_enas', 'meliusnet59_enas',
+           'meliusnet_a_enas', 'meliusnet_b_enas', 'meliusnet_c_enas']
 
 
 # Blocks
-class ImprovementBlock(HybridBlock):
+@enas_unit(replace_by_skip_connection=ag.space.Categorical(True, False))
+class ImprovementBlockEnas(HybridBlock):
     r"""ImprovementBlock which improves the last n channels"""
 
-    def __init__(self, channels, in_channels, dilation=1, **kwargs):
+    def __init__(self, channels, in_channels, replace_by_skip_connection, dilation=1, **kwargs):
         super().__init__(**kwargs)
-        self.body = nn.HybridSequential(prefix='')
-        self.body.add(nn.BatchNorm())
-        self.body.add(nn.activated_conv(channels=channels, kernel_size=3, stride=1,
-                                        padding=dilation, in_channels=in_channels, dilation=dilation))
+        self.replace_by_skip_connection = replace_by_skip_connection
+        if(not replace_by_skip_connection):
+            self.body = nn.HybridSequential(prefix='')
+            self.body.add(nn.BatchNorm())
+            self.body.add(nn.activated_conv(channels=channels, kernel_size=3, stride=1,
+                                            padding=dilation, in_channels=in_channels, dilation=dilation))
 
-        self.use_sliced_addition = channels != in_channels
-        if self.use_sliced_addition:
-            assert channels < in_channels
-            self.slices = [0, in_channels - channels, in_channels]
-            self.slices_add_x = [False, True]
+
+            self.use_sliced_addition = channels != in_channels
+            if self.use_sliced_addition:
+                assert channels < in_channels
+                self.slices = [0, in_channels - channels, in_channels]
+                self.slices_add_x = [False, True]
 
     def hybrid_forward(self, F, x):
+        if(self.replace_by_skip_connection):
+            return x
         residual = x
         x = self.body(x)
         if not self.use_sliced_addition:
@@ -62,24 +72,26 @@ class ImprovementBlock(HybridBlock):
             parts.append(result)
         return F.concat(*parts, dim=1)
 
-class MeliusNet(BaseNetDense):
+class MeliusNetEnas(BaseNetDenseEnas):
     def _add_base_block_structure(self, dilation):
-        self._add_dense_block(dilation)
-        self.current_stage.add(
-            ImprovementBlock(self.growth_rate, self.num_features, dilation=dilation, prefix='')
-        )
+        module_list = []
+        module_list.append(self._add_dense_block(dilation))
+        improvement_block = ImprovementBlockEnas(self.growth_rate, self.num_features, dilation=dilation, prefix='')
+        self.current_stage.add(improvement_block)
+        module_list.append(improvement_block)
+        return module_list
 
 
-class MeliusNetParameters(BaseNetDenseParameters):
+class MeliusNetEnasParameters(BaseNetDenseParameters):
     def __init__(self):
-        super(MeliusNetParameters, self).__init__('MeliusNet')
+        super(MeliusNetEnasParameters, self).__init__('MeliusNet')
 
     def _is_it_this_model(self, model):
         return model.startswith('meliusnet')
 
 
 # Specification
-meliusnet_spec = {
+meliusnet_enas_spec = {
     # name: block_config,     reduction_factors,                  downsampling
     None:   (None,            [1 / 2,     1 / 2,     1 / 2],      DOWNSAMPLE_STRUCT),
     '23':   ([2, 4, 6, 6],    [128 / 192, 192 / 384, 288 / 576],  DOWNSAMPLE_STRUCT.replace('fp_conv', 'cs,fp_conv:8')),
@@ -93,36 +105,36 @@ meliusnet_spec = {
 }
 
 # Constructor
-get_meliusnet = get_basenet_constructor(meliusnet_spec, MeliusNet)
+get_meliusnet_enas = get_basenet_constructor(meliusnet_enas_spec, MeliusNetEnas)
 
 
-def meliusnet_flex(**kwargs):
-    return get_meliusnet(None, **kwargs)
+def meliusnet_flex_enas(**kwargs):
+    return get_meliusnet_enas(None, **kwargs)
 
 
-def meliusnet22(**kwargs):
-    return get_meliusnet('22', **kwargs)
+def meliusnet22_enas(**kwargs):
+    return get_meliusnet_enas('22', **kwargs)
 
 
-def meliusnet29(**kwargs):
-    return get_meliusnet('29', **kwargs)
+def meliusnet29_enas(**kwargs):
+    return get_meliusnet_enas('29', **kwargs)
 
 
-def meliusnet42(**kwargs):
-    return get_meliusnet('42', **kwargs)
+def meliusnet42_enas(**kwargs):
+    return get_meliusnet_enas('42', **kwargs)
 
 
-def meliusnet59(**kwargs):
-    return get_meliusnet('59', **kwargs)
+def meliusnet59_enas(**kwargs):
+    return get_meliusnet_enas('59', **kwargs)
 
 
-def meliusnet_a(**kwargs):
-    return get_meliusnet('a', **kwargs)
+def meliusnet_a_enas(**kwargs):
+    return get_meliusnet_enas('a', **kwargs)
 
 
-def meliusnet_b(**kwargs):
-    return get_meliusnet('b', **kwargs)
+def meliusnet_b_enas(**kwargs):
+    return get_meliusnet_enas('b', **kwargs)
 
 
-def meliusnet_c(**kwargs):
-    return get_meliusnet('c', **kwargs)
+def meliusnet_c_enas(**kwargs):
+    return get_meliusnet_enas('c', **kwargs)
