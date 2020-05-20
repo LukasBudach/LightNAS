@@ -3,9 +3,11 @@ import mxnet as mx
 import mxnet.gluon.nn as nn
 from autogluon.contrib.enas import *
 
+
 class Identity(mx.gluon.HybridBlock):
     def hybrid_forward(self, F, x):
         return x
+
 
 class ConvBNReLU(mx.gluon.HybridBlock):
     def __init__(self, in_channels, channels, kernel, stride):
@@ -17,6 +19,7 @@ class ConvBNReLU(mx.gluon.HybridBlock):
     def hybrid_forward(self, F, x):
         return self.relu(self.bn(self.conv(x)))
 
+
 @enas_unit()
 class ResUnit(mx.gluon.HybridBlock):
     def __init__(self, in_channels, channels, hidden_channels, kernel, stride):
@@ -27,8 +30,10 @@ class ResUnit(mx.gluon.HybridBlock):
             self.shortcut = Identity()
         else:
             self.shortcut = nn.Conv2D(channels, 1, stride, in_channels=in_channels)
+
     def hybrid_forward(self, F, x):
         return self.conv2(self.conv1(x)) + self.shortcut(x)
+
 
 def main():
     mynet = ENAS_Sequential(
@@ -57,7 +62,7 @@ def main():
                                warmup_epochs=0, epochs=1, controller_lr=3e-3,
                                plot_frequency=10, update_arch_frequency=5)
     scheduler.run()
-
+    print(mynet.graph)
 
 
 if __name__=="__main__":

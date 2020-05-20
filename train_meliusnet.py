@@ -1,9 +1,16 @@
 from bmxnet_examples.binary_models.meliusnet import meliusnet22
 from autogluon import ImageClassification as task
+import gluoncv as gcv
 from mxnet.gluon.data.vision.datasets import CIFAR10
 from config import DATASET_PATH
 from mxnet import nd
 import mxnet as mx
+
+
+def train_alexnet(epochs):
+    # net = gcv.model_zoo.AlexNet()
+    task.fit(dataset='cifar10', epochs=epochs, ngpus_per_trial=1)
+
 
 def train_meliusnet(epochs):
     net = meliusnet22()
@@ -17,7 +24,8 @@ def train_meliusnet(epochs):
 
 
 def main():
-    train_meliusnet(1)
+    # train_meliusnet(1)
+    train_alexnet(1)
 
 if __name__=="__main__":
     main()
