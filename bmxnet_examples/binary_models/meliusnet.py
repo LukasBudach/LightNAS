@@ -19,6 +19,7 @@
 # pylint: disable= arguments-differ
 """DenseNet, implemented in Gluon."""
 from mxnet.gluon import HybridBlock, nn
+from autogluon.contrib.enas import *
 
 from binary_models.basenet_dense import *
 
@@ -62,6 +63,7 @@ class ImprovementBlock(HybridBlock):
         return F.concat(*parts, dim=1)
 
 
+@enas_unit()
 class MeliusNet(BaseNetDense):
     def _add_base_block_structure(self, dilation):
         self._add_dense_block(dilation)

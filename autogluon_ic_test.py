@@ -3,10 +3,8 @@ from autogluon import ImageClassification as task
 
 
 def get_dataset():
-    filename = ag.download('https://autogluon.s3.amazonaws.com/datasets/shopee-iet.zip')
-    ag.unzip(filename)
-    dataset = task.Dataset('data/train')
-    test_dataset = task.Dataset('data/test', train=False)
+    dataset = task.Dataset(name='FashionMNIST')
+    test_dataset = task.Dataset(name='FashionMNIST', train=False)
     return dataset, test_dataset
 
 
