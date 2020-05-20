@@ -145,8 +145,8 @@ def train_with_enas():
 
 
 def main():
-    #train_without_enas()
-    train_with_enas()
+    train_without_enas()
+    #train_with_enas()
 
 
 
