@@ -67,6 +67,7 @@ def train_meliusnet(epochs):
 
 def train_meliusnet_enas(epochs):
     net = meliusnet22()
+
     mynet = ENAS_Sequential(
         ResUnit(3, 3, hidden_channels=3, kernel=1, stride=1, with_zero=True),
         net

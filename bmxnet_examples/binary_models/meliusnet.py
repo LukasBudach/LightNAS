@@ -30,11 +30,12 @@ __all__ = ['MeliusNet', 'MeliusNetParameters', 'ImprovementBlock',
 
 
 # Blocks
+@enas_unit()
 class ImprovementBlock(HybridBlock):
     r"""ImprovementBlock which improves the last n channels"""
 
     def __init__(self, channels, in_channels, dilation=1, **kwargs):
-        super(ImprovementBlock, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.body = nn.HybridSequential(prefix='')
         self.body.add(nn.BatchNorm())
         self.body.add(nn.activated_conv(channels=channels, kernel_size=3, stride=1,
@@ -63,7 +64,7 @@ class ImprovementBlock(HybridBlock):
         return F.concat(*parts, dim=1)
 
 
-@enas_unit()
+@enas.enas_net()
 class MeliusNet(BaseNetDense):
     def _add_base_block_structure(self, dilation):
         self._add_dense_block(dilation)
