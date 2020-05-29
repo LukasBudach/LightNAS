@@ -1,3 +1,6 @@
 [submodule "autogluon"]
 	path = autogluon
 	url = https://github.com/awslabs/autogluon.git
+[submodule "BMXNet-v2-examples"]
+	path = bmxnet_examples
+	url = https://github.com/hpi-xnor/BMXNet-v2-examples.git
