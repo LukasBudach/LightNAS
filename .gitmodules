@@ -1,6 +1,3 @@
-[submodule "BMXNet-v2-examples"]
-	path = bmxnet_examples
-	url = https://github.com/hpi-xnor/BMXNet-v2-examples.git
 [submodule "autogluon"]
 	path = autogluon
 	url = git@github.com:Tobias314/autogluon.git
