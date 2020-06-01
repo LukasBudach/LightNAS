@@ -2,7 +2,7 @@
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$" />
-    <orderEntry type="jdk" jdkName="Python 3.6 (BmxNet)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Remote Python 3.6.10 (sftp://padl20t4@172.20.8.14:22/home/padl20t4/virtualenv/BmxPy3/bin/python3.6)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

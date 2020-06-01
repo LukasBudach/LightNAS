@@ -17,7 +17,7 @@ def create_mock_gluon_image_dataset(num_samples=10, img_width=32, img_height=32,
     return train_dataset, val_dataset
 
 def train_net_enas(net, epochs, name, log_dir='./logs/',
-                   batch_size=64, train_set='imagenet', val_set=None):
+                   batch_size=64, train_set='imagenet', val_set=None, num_gpus=1):
     mynet = net
 
     def save_graph_val_fn(supernet, epoch):
@@ -31,7 +31,7 @@ def train_net_enas(net, epochs, name, log_dir='./logs/',
                                                                                                   mynet.latency))
     mynet.nparams
 
-    scheduler = ENAS_Scheduler(mynet, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=1,
+    scheduler = ENAS_Scheduler(mynet, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3,
                                plot_frequency=10, update_arch_frequency=5, post_epoch_fn=save_graph_val_fn)
     scheduler.run()
@@ -40,7 +40,8 @@ def main():
     train_set = 'cifar100'
     val_set = None
     #train_set, val_set = create_mock_gluon_image_dataset()
-    train_net_enas(meliusnet22_enas().enas_sequential, 3, 'meliusnet22', train_set=train_set, val_set=val_set, batch_size=5)
+    #we set num_gpus=(1,) because when specifying a tuple we can set a specific gpu mapping
+    train_net_enas(meliusnet22_enas().enas_sequential, 100, 'meliusnet22_without_enas', train_set=train_set, val_set=val_set, batch_size=128, num_gpus=(1,))
     #train_net_enas(meliusnet59_enas().enas_sequential, 3, 'meliusnet59', train_set=train_set, val_set=val_set, batch_size=5)
 
 

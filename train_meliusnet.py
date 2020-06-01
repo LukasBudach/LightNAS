@@ -119,7 +119,7 @@ def main():
     train_set, val_set = create_mock_gluon_image_dataset()
     # train_meliusnet(2)
     # train_alexnet(10)
-    train_net_enas(meliusnet22_enas().enas_sequential, 3, 'meliusnet22', train_set=train_set, val_set=val_set)
+    train_net_enas(meliusnet22_enas().enas_sequential, 10, 'meliusnet22', train_set=train_set, val_set=val_set)
     #train_meliusnet22_enas(3)
 
 

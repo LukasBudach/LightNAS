@@ -13,10 +13,10 @@ import autogluon as ag
 from autogluon.contrib.enas import *
 
 
-@enas_unit(replace_by_skip_connection=ag.space.Categorical(True, False))
+@enas_unit()#replace_by_skip_connection=ag.space.Categorical(True, False))
 class DenseBlockEnas(HybridBlock):
 
-    def __init__(self, growth_rate, dilation, bn_size, dropout, replace_by_skip_connection, **kwargs):
+    def __init__(self, growth_rate, dilation, bn_size, dropout, replace_by_skip_connection=False, **kwargs):
         super().__init__(**kwargs)
         self.growth_rate = growth_rate
         self.dilation = dilation

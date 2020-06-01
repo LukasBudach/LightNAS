@@ -34,11 +34,11 @@ __all__ = ['MeliusNetEnas', 'MeliusNetEnasParameters', 'ImprovementBlockEnas',
 
 
 # Blocks
-@enas_unit(replace_by_skip_connection=ag.space.Categorical(True, False))
+@enas_unit()#replace_by_skip_connection=ag.space.Categorical(True, False))
 class ImprovementBlockEnas(HybridBlock):
     r"""ImprovementBlock which improves the last n channels"""
 
-    def __init__(self, channels, in_channels, replace_by_skip_connection, dilation=1, **kwargs):
+    def __init__(self, channels, in_channels, replace_by_skip_connection=False, dilation=1, **kwargs):
         super().__init__(**kwargs)
         self.replace_by_skip_connection = replace_by_skip_connection
         if(not replace_by_skip_connection):
