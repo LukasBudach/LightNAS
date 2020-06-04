@@ -41,7 +41,7 @@ def main():
     val_set = None
     #train_set, val_set = create_mock_gluon_image_dataset()
     #we set num_gpus=(1,) because when specifying a tuple we can set a specific gpu mapping
-    train_net_enas(meliusnet22_enas().enas_sequential, 100, 'meliusnet22_enas_kernelsize1', train_set=train_set, val_set=val_set, batch_size=128, num_gpus=(1,))
+    train_net_enas(meliusnet22_enas().enas_sequential, 100, 'meliusnet22_enas_kernelsize1', train_set=train_set, val_set=val_set, batch_size=128, num_gpus=(0,))
     #train_net_enas(meliusnet59_enas().enas_sequential, 3, 'meliusnet59', train_set=train_set, val_set=val_set, batch_size=5)
 
 

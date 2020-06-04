@@ -32,21 +32,6 @@ __all__ = ['MeliusNetEnas', 'MeliusNetEnasParameters', 'ImprovementBlockEnas',
            'meliusnet_flex_enas', 'meliusnet22_enas', 'meliusnet29_enas', 'meliusnet42_enas', 'meliusnet59_enas',
            'meliusnet_a_enas', 'meliusnet_b_enas', 'meliusnet_c_enas']
 
-@enas_unit()
-class MyEnasLayer(HybridBlock):
-    def __init__(self, ...):
-        ...
-
-    def hybrid_forward(self, F, x):
-        ...
-
-class MyEnasLayer(HybridBlock):
-    def __init__(self, ...):
-        ...
-
-    def hybrid_forward(self, F, x):
-        ...
-
 # Blocks
 @enas_unit(replace_by_skip_connection=ag.space.Categorical(True, False))
 class ImprovementBlockEnas(HybridBlock):
