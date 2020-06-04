@@ -27,7 +27,7 @@ class DenseBlockEnas(HybridBlock):
         self.replace_by_skip_connection = replace_by_skip_connection
         if self.replace_by_skip_connection:
             self._add_conv_block(new_feature_computation,
-                                 nn.activated_conv(self.growth_rate, kernel_size=1, padding=dilation,
+                                 nn.activated_conv(self.growth_rate, kernel_size=1, padding=0,
                                                    dilation=dilation))
         else:
             if self.bn_size == 0:
