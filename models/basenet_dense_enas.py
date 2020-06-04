@@ -13,7 +13,8 @@ import autogluon as ag
 from autogluon.contrib.enas import *
 
 
-@enas_unit()#replace_by_skip_connection=ag.space.Categorical(True, False))
+
+@enas_unit(replace_by_skip_connection=ag.space.Categorical(True, False))
 class DenseBlockEnas(HybridBlock):
 
     def __init__(self, growth_rate, dilation, bn_size, dropout, replace_by_skip_connection=False, **kwargs):
@@ -26,7 +27,7 @@ class DenseBlockEnas(HybridBlock):
         self.replace_by_skip_connection = replace_by_skip_connection
         if self.replace_by_skip_connection:
             self._add_conv_block(new_feature_computation,
-                                 nn.activated_conv(self.growth_rate, kernel_size=3, padding=dilation,
+                                 nn.activated_conv(self.growth_rate, kernel_size=1, padding=dilation,
                                                    dilation=dilation))
         else:
             if self.bn_size == 0:
