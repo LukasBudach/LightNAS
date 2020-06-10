@@ -71,9 +71,20 @@ def load_dot_files(file_dir, prefix, max_epoch, min_epoch=0):
     dots = {}
     print('Loading the files...')
     for i in tqdm(range(min_epoch, max_epoch + 1)):
-        filename = prefix + str(i)
+        filename = prefix + str(i) + '.dot'
         dots[filename] = (pydot.graph_from_dot_file(file_dir / filename)[0])
     return dots
+
+
+def format_and_render(dot_file):
+    if type(dot_file) is str:
+        dot_file = Path(dot_file)
+    graph = pydot.graph_from_dot_file(dot_file)[0]
+    node_list = graph.get_node_list()
+    for node in node_list:
+        format_node(node)
+    graph.write_pdf(dot_file.with_suffix('.pdf'))
+    graph.write_png(dot_file.with_suffix('.png'))
 
 
 def format_node(node):
