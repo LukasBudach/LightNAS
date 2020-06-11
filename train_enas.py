@@ -18,20 +18,18 @@ def create_mock_gluon_image_dataset(num_samples=10, img_width=32, img_height=32,
 
 def train_net_enas(net, epochs, name, log_dir='./logs/',
                    batch_size=64, train_set='imagenet', val_set=None, num_gpus=1):
-    mynet = net
 
     def save_graph_val_fn(supernet, epoch):
         supernet.graph.render(log_dir + '/' + name + '/architectures/epoch_' + str(epoch))
 
-    mynet.initialize()
+    #net is an ENAS_Sequential object
+    net.initialize()
     x = mx.nd.random.uniform(shape=(1, 3, 32, 32))
-    mynet(x)
-    y = mynet.evaluate_latency(x)
-    print('Average latency is {:.2f} ms, latency of the current architecture is {:.2f} ms'.format(mynet.avg_latency,
-                                                                                                  mynet.latency))
-    mynet.nparams
-
-    scheduler = ENAS_Scheduler(mynet, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
+    net(x)
+    y = net.evaluate_latency(x)
+    print('Average latency is {:.2f} ms, latency of the current architecture is {:.2f} ms'.format(net.avg_latency,
+                                                                                                  net.latency))
+    scheduler = ENAS_Scheduler(net, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3,
                                plot_frequency=10, update_arch_frequency=5, post_epoch_fn=save_graph_val_fn)
     scheduler.run()
