@@ -3,6 +3,8 @@ from autogluon.contrib.enas import *
 import mxnet as mx
 from mxnet import nd
 from autogluon.utils import DataLoader
+from visualization.color_graphs import format_and_render
+from pathlib import Path
 
 def create_mock_gluon_image_dataset(num_samples=10, img_width=32, img_height=32, num_channels=3, num_classes=10):
     X = nd.random.uniform(shape=(num_samples,num_channels,img_height,img_width))
@@ -16,11 +18,16 @@ def create_mock_gluon_image_dataset(num_samples=10, img_width=32, img_height=32,
 
     return train_dataset, val_dataset
 
+
 def train_net_enas(net, epochs, name, log_dir='./logs/',
                    batch_size=64, train_set='imagenet', val_set=None, num_gpus=1):
 
     def save_graph_val_fn(supernet, epoch):
-        supernet.graph.render(log_dir + '/' + name + '/architectures/epoch_' + str(epoch))
+        filepath = Path(log_dir + '/' + name + '/architectures/epoch_' + str(epoch) + '.dot')
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        print('\nSaving graph to ' + str(filepath) + '\n')
+        supernet.graph.save(filepath)
+        format_and_render(filepath)
 
     #net is an ENAS_Sequential object
     net.initialize()
@@ -33,6 +40,7 @@ def train_net_enas(net, epochs, name, log_dir='./logs/',
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3,
                                plot_frequency=10, update_arch_frequency=5, post_epoch_fn=save_graph_val_fn)
     scheduler.run()
+
 
 def main():
     train_set = 'cifar100'
