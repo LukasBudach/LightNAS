@@ -12,6 +12,7 @@ from bmxnet_examples.binary_models.common_layers import ChannelShuffle, add_init
 import autogluon as ag
 from autogluon.contrib.enas import *
 
+from bmxnet_examples.binary_models.model_parameters import ModelParameters
 
 
 @enas_unit(replace_by_skip_connection=ag.space.Categorical(True, False))
@@ -57,7 +58,7 @@ class DenseBlockEnas(HybridBlock):
 
 
 # Net
-class BaseNetDenseEnas():
+class BaseNetDenseEnas(HybridBlock):
     r"""Densenet-BC model from the
     `"Densely Connected Convolutional Networks" <https://arxiv.org/pdf/1608.06993.pdf>`_ paper.
 
@@ -82,6 +83,7 @@ class BaseNetDenseEnas():
 
     def __init__(self, num_init_features, growth_rate, block_config, reduction, bn_size, downsample,
                  initial_layers="imagenet", dropout=0, classes=1000, dilated=False, **kwargs):
+        super().__init__(**kwargs)
         self.num_blocks = len(block_config)
         self.dilation = (1, 1, 2, 4) if dilated else (1, 1, 1, 1)
         self.downsample_struct = downsample
@@ -117,6 +119,14 @@ class BaseNetDenseEnas():
         module_list.append(self.output)
 
         self.enas_sequential = ENAS_Sequential(module_list)
+        self.hybrid_sequential = nn.HybridSequential()
+        for module in module_list:
+            self.hybrid_sequential.add(module)
+        self.hybrid_sequential.initialize()
+
+    def hybrid_forward(self, F, x):
+        return self.hybrid_sequential(x)
+
 
 
 

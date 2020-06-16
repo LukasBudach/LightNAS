@@ -1,0 +1,1 @@
+python ../bmxnet_examples/image_classification.py --data-path "/path/to/cifar/" --augmentation low --batch-size 128 --clip-threshold 1.3 --dataset cifar100 --epochs 150 --gpus 0 --log-interval 50 --lr 0.02 --lr-mode cosine --mode hybrid --model meliusnet22 --optimizer adam --warmup-epochs 5

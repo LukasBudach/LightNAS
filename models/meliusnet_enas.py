@@ -80,15 +80,6 @@ class MeliusNetEnas(BaseNetDenseEnas):
         module_list.append(improvement_block)
         return module_list
 
-
-class MeliusNetEnasParameters(BaseNetDenseParameters):
-    def __init__(self):
-        super(MeliusNetEnasParameters, self).__init__('MeliusNet')
-
-    def _is_it_this_model(self, model):
-        return model.startswith('meliusnet')
-
-
 # Specification
 meliusnet_enas_spec = {
     # name: block_config,     reduction_factors,                  downsampling
