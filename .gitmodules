@@ -1,6 +1,3 @@
 [submodule "autogluon"]
 	path = autogluon
 	url = https://github.com/Tobias314/autogluon.git
-[submodule "config-argparse"]
-	path = config-argparse
-	url = https://github.com/LukasBudach/config-argparse.git
