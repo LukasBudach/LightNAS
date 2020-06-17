@@ -3,6 +3,9 @@ data/
 datasets/
 logs/
 tensorboard_logs/
+configs/
+.idea/
+dask-worker-space/
 
 
 
