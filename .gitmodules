@@ -1,3 +1,6 @@
 [submodule "autogluon"]
 	path = autogluon
 	url = https://github.com/Tobias314/autogluon.git
+[submodule "persistentargparse"]
+	path = persistentargparse
+	url = https://github.com/LukasBudach/persistentargparse
