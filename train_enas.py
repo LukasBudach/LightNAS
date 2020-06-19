@@ -42,19 +42,32 @@ def train_net_enas(net, epochs, name, log_dir='./logs/',
     y = net.evaluate_latency(x)
     print('Average latency is {:.2f} ms, latency of the current architecture is {:.2f} ms'.format(net.avg_latency,
                                                                                                   net.latency))
-    scheduler = ENAS_Scheduler(net, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
+    scheduler = ENAS_Scheduler(net, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=0,
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3,
                                plot_frequency=10, update_arch_frequency=5, post_epoch_fn=save_graph_val_fn)
     scheduler.run()
+
+    #Saving of the last sampled model
+    #create the symbolic graph
+    data = mx.sym.Variable('data')
+    symbolic = net(data)
+    symbolic.save("symbolic_graph.json")
+    sampled_modules = mnet_enas.prune()
+    hybrid_seq = nn.HybridSequential()
+    for module in sampled_modules:
+        hybrid_seq.add(module)
+    hybrid_seq.hybridize()
+    mock = mx.nd.random.uniform(shape=(1, 3, 32, 32))
+    hybrid_seq(mock)
+    hybrid_seq.export("sampled_model")
 
 
 def main(args):
     train_set = args.train_data
     val_set = args.val_data
-    #train_set, val_set = create_mock_gluon_image_dataset()
-    #we set num_gpus=(1,) because when specifying a tuple we can set a specific gpu mapping
+    train_set, val_set = create_mock_gluon_image_dataset()
     train_net_enas(meliusnet22_enas().enas_sequential, args.epochs, 'meliusnet22_enas_kernelsize1', train_set=train_set,
-                   val_set=val_set, batch_size=args.batch_size, num_gpus=(args.num_gpus,))
+                   val_set=val_set, batch_size=args.batch_size)
     #train_net_enas(meliusnet59_enas().enas_sequential, 3, 'meliusnet59', train_set=train_set, val_set=val_set, batch_size=5)
 
 

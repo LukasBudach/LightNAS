@@ -28,7 +28,7 @@ from models.basenet_dense_enas import BaseNetDenseEnas
 import autogluon as ag
 
 
-__all__ = ['MeliusNetEnas', 'MeliusNetEnasParameters', 'ImprovementBlockEnas',
+__all__ = ['MeliusNetEnas', 'ImprovementBlockEnas',
            'meliusnet_flex_enas', 'meliusnet22_enas', 'meliusnet29_enas', 'meliusnet42_enas', 'meliusnet59_enas',
            'meliusnet_a_enas', 'meliusnet_b_enas', 'meliusnet_c_enas']
 
