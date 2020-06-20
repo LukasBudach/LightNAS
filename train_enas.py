@@ -29,11 +29,20 @@ def train_net_enas(net, epochs, name, log_dir='./logs/',
                    batch_size=64, train_set='imagenet', val_set=None, num_gpus=1):
 
     def save_graph_val_fn(supernet, epoch):
-        filepath = Path(log_dir + '/' + name + '/architectures/epoch_' + str(epoch) + '.dot')
-        filepath.parent.mkdir(parents=True, exist_ok=True)
-        print('\nSaving graph to ' + str(filepath) + '\n')
-        supernet.graph.save(filepath)
-        format_and_render(filepath)
+        viz_filepath = Path(log_dir + '/' + name + '/architectures/epoch_' + str(epoch) + '.dot')
+        txt_filepath = Path(log_dir + '/' + name + '/architectures/epoch_' + str(epoch) + '.txt')
+
+        # saves the vizualization
+        viz_filepath.parent.mkdir(parents=True, exist_ok=True)
+        print('\nSaving graph to ' + str(viz_filepath) + '\n')
+        supernet.graph.save(viz_filepath)
+        format_and_render(viz_filepath)
+
+        # saves the architecture in txt format
+        txt_file = open(txt_filepath, "w")
+        txt_file.write(supernet.__repr__())
+        txt_file.close()
+
 
     #net is an ENAS_Sequential object
     net.initialize()

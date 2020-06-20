@@ -59,7 +59,7 @@ def main():
 
     scheduler = ENAS_Scheduler(mynet, train_set='mnist',
                                reward_fn=reward_fn, batch_size=32, num_gpus=1,
-                               warmup_epochs=0, epochs=1, controller_lr=3e-3,
+                               warmup_epochs=0, epochs=5, controller_lr=3e-3,
                                plot_frequency=10, update_arch_frequency=5)
     scheduler.run()
     print(mynet.graph)
