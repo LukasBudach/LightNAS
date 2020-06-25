@@ -4,5 +4,6 @@ epochs: 5
 initial_layers: thumbnail
 network: meliusnet22_enas
 num_gpus: 0
-train_data: mock
+train_data: null
+mock: cifar100
 val_data: null
