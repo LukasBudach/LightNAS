@@ -1,5 +1,6 @@
 from models.meliusnet_enas import meliusnet22_enas, meliusnet59_enas
 from autogluon.contrib.enas import *
+import mxnet.gluon.nn as nn
 import mxnet as mx
 from mxnet import nd
 from visualization.color_graphs import format_and_render
@@ -21,7 +22,39 @@ def create_mock_gluon_image_dataset(num_samples=10, img_width=32, img_height=32,
     return train_dataset, val_dataset
 
 
-def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_set='imagenet', val_set=None, num_gpus=0, verbose=True):
+# TODO: change train_set
+# TODO: implement custom epoch save
+def save_model(net, export_model_name, option=['ignore'], train_set=None, epoch=1):
+    '''
+    Args:
+        net (ENAS_Sequential): network to be exported
+        option (list): collection of decisions 'ignore', 'trainable', 'inference', depending
+        on how you want your exported model to behave.
+    Returns:
+    '''
+    if 'ignore' in option:
+        raise ValueError('If you are exporting your model, you must provide the model name as argument')
+
+    for decision in option:
+        if decision == 'inference':
+            # TODO: GENERATE MOCK DATA ACCORDING TO THE TRAIN SET SHAPE
+            mock_data = mx.nd.random.normal(shape=(1, 3, 32, 32))
+            hybnet = nn.HybridSequential()
+            for layer in net.prune():
+                hybnet.add(layer)
+            hybnet.hybridize()
+            hybnet(mock_data)
+            export_dir = 'exported_models/inference_only/'
+            hybnet.export(export_dir + export_model_name)
+            print('Inference model has been exported to `{}`'.format(export_dir))
+        if decision == 'trainable':
+            raise NotImplementedError('still to be implemented')
+        if decision == 'ignore':
+            return
+
+
+def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_set='imagenet', val_set=None,
+                   num_gpus=0, export_to_inference=True, export_to_trainable=False, export_model_name='teste01', verbose=True):
 
     def save_graph_val_fn(supernet, epoch):
         viz_filepath = Path(log_dir + '/' + name + '/architectures/epoch_' + str(epoch) + '.dot')
@@ -57,19 +90,17 @@ def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_se
                                plot_frequency=10, update_arch_frequency=5, post_epoch_fn=save_graph_val_fn)
     scheduler.run()
 
-    #Saving of the last sampled model
-    #create the symbolic graph
-    data = mx.sym.Variable('data')
-    symbolic = net(data)
-    symbolic.save("symbolic_graph.json")
-    sampled_modules = mnet_enas.prune()
-    hybrid_seq = nn.HybridSequential()
-    for module in sampled_modules:
-        hybrid_seq.add(module)
-    hybrid_seq.hybridize()
-    mock = mx.nd.random.uniform(shape=(1, 3, 32, 32))
-    hybrid_seq(mock)
-    hybrid_seq.export("sampled_model")
+    if export_to_inference and export_to_trainable:
+        option = ['inference', 'trainable']
+    elif export_to_inference:
+        option = ['inference']
+    elif export_to_trainable:
+        option = ['trainable']
+    else:
+        option = ['ignore']
+
+    # TODO: give epochs every few steps
+    save_model(net=net, export_model_name=export_model_name, option=option, train_set=train_set, epoch=epochs)
 
 
 def main(args):
@@ -98,12 +129,11 @@ if __name__ == "__main__":
     parser.add_argument('--train-data', type=str, required=True, help='Autogluon specifier for the dataset to use for '
                                                                       'training. Pass mock in order to mock the '
                                                                       'training and validation data.')
-    parser.add_argument('--val-data', type=str, required=False, help='Autogluon specifier for the dataset to use for '
-                                                                     'validation.')
-
+    parser.add_argument('--val-data', type=str, required=False, help='Autogluon specifier for the dataset to use for validation.')
     parser.add_argument('--num-classes', type=int, required=False, default=100, help='Number of classes of the dataset.')
-
-    parser.add_argument('--verbose', type=bool, required=False, help='Prints a summary and the network repr after '
-                                                                    'initializing the network.')
+    parser.add_argument('--verbose', type=bool, required=False, help='Prints a summary and the network repr after initializing the network.')
+    parser.add_argument('--export-to-inference', type=bool, required=False, help='If save model for further inference.')
+    parser.add_argument('--export-to-trainable', type=bool, required=False, help='If save model as a trainable model.')
+    parser.add_argument('--export-model-name', type=str, required=False, help='Name of the saved model.')
 
     main(parser.parse_args())
