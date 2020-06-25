@@ -1,6 +1,0 @@
-batch_size: 128
-config: configs/default_config_06_17.yml
-epochs: 100
-num_gpus: 0
-train_data: cifar100
-val_data: null
