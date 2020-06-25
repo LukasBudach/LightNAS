@@ -63,7 +63,7 @@ class BaseNetDense(HybridBlock):
 
     def __init__(self, num_init_features, growth_rate, block_config, reduction, bn_size, downsample,
                  initial_layers="imagenet", dropout=0, classes=1000, dilated=False, **kwargs):
-        super().__init__(**kwargs)
+        super(BaseNetDense, self).__init__(**kwargs)
         self.num_blocks = len(block_config)
         self.dilation = (1, 1, 2, 4) if dilated else (1, 1, 1, 1)
         self.downsample_struct = downsample
@@ -84,10 +84,10 @@ class BaseNetDense(HybridBlock):
             self.finalize = nn.HybridSequential(prefix='')
             self.finalize.add(nn.BatchNorm())
             self.finalize.add(nn.Activation('relu'))
-            #if dilated:
-            #    self.finalize.add(nn.AvgPool2D(pool_size=28))
-            #else:
-            #    self.finalize.add(nn.AvgPool2D(pool_size=4 if initial_layers == "thumbnail" else 7))
+            if dilated:
+                self.finalize.add(nn.AvgPool2D(pool_size=28))
+            else:
+                self.finalize.add(nn.AvgPool2D(pool_size=4 if initial_layers == "thumbnail" else 7))
             self.finalize.add(nn.Flatten())
 
             self.output = nn.Dense(classes)
