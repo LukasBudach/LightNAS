@@ -249,6 +249,8 @@ def train(opt, ctx):
     data, _ = get_dummy_data(opt, ctx[0])
     _ = net(data)
 
+    net.summary(data)
+
     if opt.mode == 'hybrid':
         net.hybridize()
 
@@ -458,6 +460,9 @@ if __name__ == '__main__':
     metric = CompositeEvalMetric([Accuracy(), TopKAccuracy(5)])
 
     net, arg_params, aux_params = get_model(opt, context)
+
+    print(net)
+
 
     if opt.profile:
         import hotshot, hotshot.stats

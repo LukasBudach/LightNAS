@@ -21,7 +21,7 @@ def create_mock_gluon_image_dataset(num_samples=10, img_width=32, img_height=32,
     return train_dataset, val_dataset
 
 
-def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_set='imagenet', val_set=None, num_gpus=0):
+def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_set='imagenet', val_set=None, num_gpus=0, verbose=True):
 
     def save_graph_val_fn(supernet, epoch):
         viz_filepath = Path(log_dir + '/' + name + '/architectures/epoch_' + str(epoch) + '.dot')
@@ -44,6 +44,11 @@ def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_se
     # create an initial input for the network with the same dimensions as the data from the given train and val datasets
     x = mx.nd.random.uniform(shape=(1, 3, 32, 32))
     net(x)
+
+    if verbose:
+        print(net)
+        net.summary(x)
+
     y = net.evaluate_latency(x)
     print('Average latency is {:.2f} ms, latency of the current architecture is {:.2f} ms'.format(net.avg_latency,
                                                                                                   net.latency))
@@ -74,9 +79,9 @@ def main(args):
     if train_set == 'mock':
         train_set, val_set = create_mock_gluon_image_dataset()
     # define additional arguments for the network construction
-    kwargs = {'initial_layers': args.initial_layers}
+    kwargs = {'initial_layers': args.initial_layers, 'classes': args.num_classes}
     train_net_enas(globals()[args.network](**kwargs).enas_sequential, args.epochs, 'meliusnet22_enas_kernelsize1',
-                   train_set=train_set, val_set=val_set, batch_size=args.batch_size, num_gpus=args.num_gpus)
+                   train_set=train_set, val_set=val_set, batch_size=args.batch_size, num_gpus=args.num_gpus, verbose=args.verbose)
 
 
 if __name__ == "__main__":
@@ -95,5 +100,10 @@ if __name__ == "__main__":
                                                                       'training and validation data.')
     parser.add_argument('--val-data', type=str, required=False, help='Autogluon specifier for the dataset to use for '
                                                                      'validation.')
+
+    parser.add_argument('--num-classes', type=int, required=False, default=100, help='Number of classes of the dataset.')
+
+    parser.add_argument('--verbose', type=bool, required=False, help='Prints a summary and the network repr after '
+                                                                    'initializing the network.')
 
     main(parser.parse_args())

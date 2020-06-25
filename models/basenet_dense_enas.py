@@ -108,10 +108,10 @@ class BaseNetDenseEnas(HybridBlock):
         self.finalize = nn.HybridSequential(prefix='')
         self.finalize.add(nn.BatchNorm())
         self.finalize.add(nn.Activation('relu'))
-        #if dilated:
-        #    self.finalize.add(nn.AvgPool2D(pool_size=28))
-        #else:
-        #    self.finalize.add(nn.AvgPool2D(pool_size=4 if initial_layers == "thumbnail" else 7))
+        if dilated:
+           self.finalize.add(nn.AvgPool2D(pool_size=28))
+        else:
+           self.finalize.add(nn.AvgPool2D(pool_size=4 if initial_layers == "thumbnail" else 7))
         self.finalize.add(nn.Flatten())
         module_list.append(self.finalize)
 
