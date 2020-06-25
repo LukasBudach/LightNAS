@@ -6,6 +6,7 @@ tensorboard_logs/
 configs/
 .idea/
 dask-worker-space/
+*.ag
 
 
 
