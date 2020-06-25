@@ -1,0 +1,7 @@
+batch_size: 128
+config: configs/default_config_melius22_cifar100.yml
+epochs: 100
+network: meliusnet22_enas
+num_gpus: 0
+train_data: cifar100
+val_data: null
