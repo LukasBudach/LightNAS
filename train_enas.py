@@ -21,40 +21,8 @@ def create_mock_gluon_image_dataset(num_samples=10, img_width=32, img_height=32,
 
     return train_dataset, val_dataset
 
-
-# TODO: change train_set
-# TODO: implement custom epoch save
-def save_model(net, export_model_name, option=['ignore'], train_set=None, epoch=1):
-    '''
-    Args:
-        net (ENAS_Sequential): network to be exported
-        option (list): collection of decisions 'ignore', 'trainable', 'inference', depending
-        on how you want your exported model to behave.
-    Returns:
-    '''
-    if 'ignore' in option:
-        raise ValueError('If you are exporting your model, you must provide the model name as argument')
-
-    for decision in option:
-        if decision == 'inference':
-            # TODO: GENERATE MOCK DATA ACCORDING TO THE TRAIN SET SHAPE
-            mock_data = mx.nd.random.normal(shape=(1, 3, 32, 32))
-            hybnet = nn.HybridSequential()
-            for layer in net.prune():
-                hybnet.add(layer)
-            hybnet.hybridize()
-            hybnet(mock_data)
-            export_dir = 'exported_models/inference_only/'
-            hybnet.export(export_dir + export_model_name)
-            print('Inference model has been exported to `{}`'.format(export_dir))
-        if decision == 'trainable':
-            raise NotImplementedError('still to be implemented')
-        if decision == 'ignore':
-            return
-
-
 def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_set='imagenet', val_set=None,
-                   num_gpus=0, export_to_inference=True, export_to_trainable=False, export_model_name='teste01', verbose=True):
+                   num_gpus=0, export_to_inference=True, export_to_trainable=True, export_model_name='teste01', verbose=True):
 
     def save_graph_val_fn(supernet, epoch):
         viz_filepath = Path(log_dir + '/' + name + '/architectures/epoch_' + str(epoch) + '.dot')
@@ -70,6 +38,38 @@ def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_se
         txt_file = open(txt_filepath, "w")
         txt_file.write(supernet.__repr__())
         txt_file.close()
+
+    if export_to_inference and export_to_trainable:
+        option = ['inference', 'trainable']
+    elif export_to_inference:
+        option = ['inference']
+    elif export_to_trainable:
+        option = ['trainable']
+    else:
+        option = ['ignore']
+
+    def save_model(supernet, epoch):
+        if 'ignore' in option:
+            raise ValueError('If you are exporting your model, you must provide the model name as argument')
+
+        for decision in option:
+            if decision == 'inference':
+                # TODO: GENERATE MOCK DATA ACCORDING TO THE TRAIN SET
+                mock_data = mx.nd.random.normal(shape=(1, 3, 32, 32))
+                hybnet = nn.HybridSequential()
+                for layer in supernet.prune():
+                    hybnet.add(layer)
+                hybnet.hybridize()
+                hybnet(mock_data)
+                export_dir = 'exported_models/inference_only/'
+                hybnet.export(export_dir + export_model_name, epoch=epoch)
+                print('Inference model has been exported to {}'.format(export_dir))
+            if decision == 'trainable':
+                export_dir = 'exported_models/trainables/'
+                hybnet.save_parameters(export_dir + export_model_name + '.params')
+                print('Trainable model has been exported to {}'.format(export_dir))
+            if decision == 'ignore':
+                return
 
 
     # net is an ENAS_Sequential object
@@ -87,20 +87,8 @@ def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_se
                                                                                                   net.latency))
     scheduler = ENAS_Scheduler(net, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3,
-                               plot_frequency=10, update_arch_frequency=5, post_epoch_fn=save_graph_val_fn)
+                               plot_frequency=10, update_arch_frequency=5, post_epoch_fn=save_graph_val_fn, post_epoch_save=save_model)
     scheduler.run()
-
-    if export_to_inference and export_to_trainable:
-        option = ['inference', 'trainable']
-    elif export_to_inference:
-        option = ['inference']
-    elif export_to_trainable:
-        option = ['trainable']
-    else:
-        option = ['ignore']
-
-    # TODO: give epochs every few steps
-    save_model(net=net, export_model_name=export_model_name, option=option, train_set=train_set, epoch=epochs)
 
 
 def main(args):
