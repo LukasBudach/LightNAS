@@ -123,7 +123,9 @@ def main(args):
         .format(now.year, now.month, now.day, now.hour, now.minute)
     train_net_enas(globals()[args.network](**kwargs).enas_sequential, args.epochs,
                    train_dir=Path('./trainings/{}'.format(training_name)), train_set=train_set, val_set=val_set,
-                   batch_size=args.batch_size, num_gpus=args.num_gpus, net_init_shape=init_shape, verbose=args.verbose)
+                   batch_size=args.batch_size, num_gpus=args.num_gpus, net_init_shape=init_shape, verbose=args.verbose,
+                   export_model_name=args.export_model_name, export_to_inference=args.export_to_inference,
+                   export_to_trainable=args.export_to_trainable)
 
 
 if __name__ == "__main__":
@@ -153,8 +155,8 @@ if __name__ == "__main__":
 
     parser.add_argument('--verbose', action='store_true',
                         help='Prints a summary and the network repr after initializing the network.')
-    parser.add_argument('--export-to-inference', type=bool, required=False, help='If save model for further inference.')
-    parser.add_argument('--export-to-trainable', type=bool, required=False, help='If save model as a trainable model.')
-    parser.add_argument('--export-model-name', type=str, required=False, help='Name of the saved model.')
+    parser.add_argument('--export-to-inference', action='store_true', help='Set to save model for further inference.')
+    parser.add_argument('--export-to-trainable', action='store_true', help='Set to save model as a trainable model.')
+    parser.add_argument('--export-model-name', type=str, default='model', help='Name of the saved model.')
 
     main(parser.parse_args())
