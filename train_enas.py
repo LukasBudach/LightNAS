@@ -1,4 +1,5 @@
-from models.meliusnet_enas import meliusnet22_enas, meliusnet59_enas
+from models.meliusnet_enas import *
+from models.resnet_enas import *
 from autogluon.contrib.enas import *
 from datetime import datetime
 import mxnet.gluon.nn as nn
