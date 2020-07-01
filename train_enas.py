@@ -60,17 +60,21 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
         option = ['ignore']
 
     def save_model(supernet, epoch):
-        if 'ignore' in option:
+        if export_model_name is None:
             raise ValueError('If you are exporting your model, you must provide the model name as argument')
 
         for decision in option:
+            if decision == 'ignore':
+                continue
+
+            mock_data = mx.nd.random.normal(shape=net_init_shape, ctx=mx.gpu() if num_gpus > 0 else mx.cpu())
+            hybnet = nn.HybridSequential()
+            for layer in supernet.prune():
+                hybnet.add(layer)
+            hybnet.hybridize()
+            hybnet(mock_data)
+
             if decision == 'inference':
-                mock_data = mx.nd.random.normal(shape=net_init_shape)
-                hybnet = nn.HybridSequential()
-                for layer in supernet.prune():
-                    hybnet.add(layer)
-                hybnet.hybridize()
-                hybnet(mock_data)
                 export_dir = train_dir / 'exported_models/inference_only'
                 export_dir.mkdir(parents=True, exist_ok=True)
                 hybnet.export(export_dir / export_model_name, epoch=epoch)
@@ -78,10 +82,10 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
             if decision == 'trainable':
                 export_dir = train_dir / 'exported_models/trainables'
                 export_dir.mkdir(parents=True, exist_ok=True)
-                hybnet.save_parameters((export_dir / export_model_name).with_suffix('.params'))
+                hybnet.save_parameters(str((export_dir / (export_model_name + "_{:04d}".format(epoch)))
+                                           .with_suffix('.params').resolve()))
                 print('Trainable model has been exported to {}'.format(export_dir))
-            if decision == 'ignore':
-                return
+
 
 
     # net is an ENAS_Sequential object
