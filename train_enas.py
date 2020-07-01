@@ -1,6 +1,7 @@
 from models.meliusnet_enas import meliusnet22_enas, meliusnet59_enas
 from autogluon.contrib.enas import *
 from datetime import datetime
+import mxnet.gluon.nn as nn
 import mxnet as mx
 from mxnet import nd
 from visualization.color_graphs import format_and_render
@@ -30,7 +31,8 @@ def create_mock_gluon_image_dataset(num_samples=10, img_width=32, img_height=32,
 
 
 def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_set='cifar100', val_set=None, num_gpus=0,
-                   net_init_shape=(1, 3, 32, 32)):
+                   net_init_shape=(1, 3, 32, 32), export_to_inference=True, export_to_trainable=True,
+                   export_model_name='teste01', verbose=True):
 
     def save_graph_val_fn(supernet, epoch):
         viz_filepath = Path(log_dir + '/' + name + '/architectures/epoch_' + str(epoch) + '.dot')
@@ -47,33 +49,56 @@ def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_se
         txt_file.write(supernet.__repr__())
         txt_file.close()
 
+    if export_to_inference and export_to_trainable:
+        option = ['inference', 'trainable']
+    elif export_to_inference:
+        option = ['inference']
+    elif export_to_trainable:
+        option = ['trainable']
+    else:
+        option = ['ignore']
+
+    def save_model(supernet, epoch):
+        if 'ignore' in option:
+            raise ValueError('If you are exporting your model, you must provide the model name as argument')
+
+        for decision in option:
+            if decision == 'inference':
+                # TODO: GENERATE MOCK DATA ACCORDING TO THE TRAIN SET
+                mock_data = mx.nd.random.normal(shape=(1, 3, 32, 32))
+                hybnet = nn.HybridSequential()
+                for layer in supernet.prune():
+                    hybnet.add(layer)
+                hybnet.hybridize()
+                hybnet(mock_data)
+                export_dir = 'exported_models/inference_only/'
+                hybnet.export(export_dir + export_model_name, epoch=epoch)
+                print('Inference model has been exported to {}'.format(export_dir))
+            if decision == 'trainable':
+                export_dir = 'exported_models/trainables/'
+                hybnet.save_parameters(export_dir + export_model_name + '.params')
+                print('Trainable model has been exported to {}'.format(export_dir))
+            if decision == 'ignore':
+                return
+
 
     # net is an ENAS_Sequential object
     net.initialize()
     # create an initial input for the network with the same dimensions as the data from the given train and val datasets
     x = mx.nd.random.uniform(net_init_shape)
     net(x)
+
+    if verbose:
+        print(net)
+        net.summary(x)
+
     y = net.evaluate_latency(x)
     print('Average latency is {:.2f} ms, latency of the current architecture is {:.2f} ms'.format(net.avg_latency,
                                                                                                   net.latency))
     scheduler = ENAS_Scheduler(net, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3,
-                               plot_frequency=10, update_arch_frequency=5, post_epoch_fn=save_graph_val_fn)
+                               plot_frequency=10, update_arch_frequency=5, post_epoch_fn=save_graph_val_fn, post_epoch_save=save_model)
     scheduler.run()
-
-    #Saving of the last sampled model
-    #create the symbolic graph
-    data = mx.sym.Variable('data')
-    symbolic = net(data)
-    symbolic.save("symbolic_graph.json")
-    sampled_modules = mnet_enas.prune()
-    hybrid_seq = nn.HybridSequential()
-    for module in sampled_modules:
-        hybrid_seq.add(module)
-    hybrid_seq.hybridize()
-    mock = mx.nd.random.uniform(shape=(1, 3, 32, 32))
-    hybrid_seq(mock)
-    hybrid_seq.export("sampled_model")
 
 
 def main(args):
@@ -97,7 +122,7 @@ def main(args):
         .format(now.year, now.month, now.day, now.hour, now.minute)
     train_net_enas(globals()[args.network](**kwargs).enas_sequential, args.epochs, training_name,
                    train_set=train_set, val_set=val_set, batch_size=args.batch_size, num_gpus=args.num_gpus,
-                   net_init_shape=init_shape)
+                   net_init_shape=init_shape, verbose=args.verbose)
 
 
 if __name__ == "__main__":
@@ -124,5 +149,11 @@ if __name__ == "__main__":
                                                           'log and model saving.')
     parser.add_argument('--val-data', type=str,help='Autogluon specifier for the dataset to use for validation.',
                         choices=supported_datasets)
+
+    parser.add_argument('--verbose', type=bool, required=False,
+                        help='Prints a summary and the network repr after initializing the network.')
+    parser.add_argument('--export-to-inference', type=bool, required=False, help='If save model for further inference.')
+    parser.add_argument('--export-to-trainable', type=bool, required=False, help='If save model as a trainable model.')
+    parser.add_argument('--export-model-name', type=str, required=False, help='Name of the saved model.')
 
     main(parser.parse_args())

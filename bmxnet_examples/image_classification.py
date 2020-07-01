@@ -14,13 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from __future__ import division
 
-#making imports to stuff outside of the bmxnet_examples folder work
-import os,sys,inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir)
+from __future__ import division
 
 import os
 import logging
@@ -254,6 +249,8 @@ def train(opt, ctx):
     data, _ = get_dummy_data(opt, ctx[0])
     _ = net(data)
 
+    net.summary(data)
+
     if opt.mode == 'hybrid':
         net.hybridize()
 
@@ -301,7 +298,6 @@ def train(opt, ctx):
                     # on all GPUs for better speed on multiple GPUs.
                     Ls.append(L)
                     outputs.append(z)
-
                 autograd.backward(Ls)
             trainer.step(batch_size)
             metric.update(label, outputs)
@@ -464,6 +460,9 @@ if __name__ == '__main__':
     metric = CompositeEvalMetric([Accuracy(), TopKAccuracy(5)])
 
     net, arg_params, aux_params = get_model(opt, context)
+
+    print(net)
+
 
     if opt.profile:
         import hotshot, hotshot.stats

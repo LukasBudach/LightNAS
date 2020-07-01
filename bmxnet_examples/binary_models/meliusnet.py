@@ -19,7 +19,6 @@
 # pylint: disable= arguments-differ
 """DenseNet, implemented in Gluon."""
 from mxnet.gluon import HybridBlock, nn
-from autogluon.contrib.enas import *
 
 from binary_models.basenet_dense import *
 
@@ -34,7 +33,7 @@ class ImprovementBlock(HybridBlock):
     r"""ImprovementBlock which improves the last n channels"""
 
     def __init__(self, channels, in_channels, dilation=1, **kwargs):
-        super().__init__(**kwargs)
+        super(ImprovementBlock, self).__init__(**kwargs)
         self.body = nn.HybridSequential(prefix='')
         self.body.add(nn.BatchNorm())
         self.body.add(nn.activated_conv(channels=channels, kernel_size=3, stride=1,
@@ -61,6 +60,7 @@ class ImprovementBlock(HybridBlock):
                 result = result + x
             parts.append(result)
         return F.concat(*parts, dim=1)
+
 
 class MeliusNet(BaseNetDense):
     def _add_base_block_structure(self, dilation):
