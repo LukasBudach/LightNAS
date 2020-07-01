@@ -12,6 +12,7 @@ except ImportError:
     print('Could not import from persistentargparse. The module should be added as git submodule to this repository. '
           'Please run git submodule init and git submodule update --remote')
     exit(1)
+from bmxnet_examples.datasets.util import get_data_iters
 
 # dictionary mapping dataset name to list of [image width, image height, number of channels, number of classes]
 dataset_prop = {
@@ -32,7 +33,7 @@ def create_mock_gluon_image_dataset(num_samples=10, img_width=32, img_height=32,
 
 def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', val_set=None,
                    num_gpus=0, net_init_shape=(1, 3, 32, 32), export_to_inference=True, export_to_trainable=True,
-                   export_model_name='teste01', verbose=True):
+                   export_model_name='teste01', verbose=True, custom_batch_fn=None):
 
     def save_graph_val_fn(supernet, epoch):
         viz_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.dot')
@@ -98,18 +99,23 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
                                                                                                   net.latency))
     scheduler = ENAS_Scheduler(net, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3, plot_frequency=10,
-                               update_arch_frequency=5, post_epoch_fn=save_graph_val_fn, post_epoch_save=save_model)
+                               update_arch_frequency=5, post_epoch_fn=save_graph_val_fn, post_epoch_save=save_model,
+                               custom_batch_fn = custom_batch_fn)
     scheduler.run()
 
 
 def main(args):
     # define additional arguments for the network construction
     kwargs = {'initial_layers': args.initial_layers}
-    if args.train_data is not None:
+    if args.dataset is not None:
         kwargs['classes'] = dataset_prop[args.train_data][3]
         init_shape = (1, dataset_prop[args.train_data][2], dataset_prop[args.train_data][0], dataset_prop[args.train_data][1])
         train_set = args.train_data
         val_set = args.val_data
+        batch_fn = None
+        # if the mock training data is asked for, create the mock dataset for training and validation
+        if args.use_bmx_examples_datasets:
+            train_data, val_data, batch_fn = get_data_iters(args)
     else:
         # since train set is not defined, we need to mock
         kwargs['classes'] = dataset_prop[args.mock][3]
@@ -117,6 +123,7 @@ def main(args):
         train_set, val_set = create_mock_gluon_image_dataset(img_width=dataset_prop[args.mock][0],
                                                              img_height=dataset_prop[args.mock][1],
                                                              num_channels=dataset_prop[args.mock][2])
+        batch_fn = None
     # define a new name for this training
     now = datetime.now()
     training_name = args.training_name if args.training_name is not None else args.network + '_{}_{}_{}_{}_{}'\
@@ -125,7 +132,7 @@ def main(args):
                    train_dir=Path('./trainings/{}'.format(training_name)), train_set=train_set, val_set=val_set,
                    batch_size=args.batch_size, num_gpus=args.num_gpus, net_init_shape=init_shape, verbose=args.verbose,
                    export_model_name=args.export_model_name, export_to_inference=args.export_to_inference,
-                   export_to_trainable=args.export_to_trainable)
+                   export_to_trainable=args.export_to_trainable, custom_batch_fn=batch_fn)
 
 
 if __name__ == "__main__":
@@ -138,23 +145,28 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--epochs', type=int, required=True, help='Number of epochs to train for.')
     parser.add_argument('--initial-layers', type=str, required=True, help='Initial layer specifier.',
                         choices=['imagenet', 'thumbnail'])
-    parser.add_argument('-n', '--network', type=str, required=True, help='Network architecture to be trained (e.g. '
-                                                                         'meliusnet22_enas).')
+    parser.add_argument('-m', '--model', type=str, required=True, help='Network architecture to be trained (e.g. '
+                                                                       'meliusnet22_enas).')
     parser.add_argument('--num-gpus', type=int, required=True, help='Number of available GPUs to use for the training.')
-
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--train-data', type=str, help='Autogluon specifier for the dataset to use for training.',
+
+    group.add_argument('--dataset', type=str, help='If --use-bmx-examples-datasets=False the Autogluon specifier for '
+                                                   'the dataset to use for training. If --use-bmx-examples-datasets='
+                                                   'True then the name of the bmxnet examples dataset to use.',
                        choices=supported_datasets)
     group.add_argument('--mock', type=str, help='Specifier for the dataset that is to be used for mocking.',
                        choices=supported_datasets)
+    parser.add_argument('--use-bmx-examples-datasets', action='store_true', help='Flag whether the string given with '
+                                                                                 '--train-data should be interpreted as'
+                                                                                 ' an Autogluon dataset or the datasets'
+                                                                                 ' from bmxnet_examples should be used.')
+    parser.add_argument('--data-dir', type=str, help='Path to the directory containing the datasets. Required when '
+                                                     'using the imagenet dataset from the bmxnet examples datasets.')
+    parser.add_argument('--num-workers', type=int, default=0, help='Number of threads used for data loading. Default is'
+                                                                   ' 0 (all work is done in main thread).')
 
-    parser.add_argument('--training-name', type=str, help='Name you want to use for this training run, will be used in '
-                                                          'log and model saving.')
-    parser.add_argument('--val-data', type=str,help='Autogluon specifier for the dataset to use for validation.',
-                        choices=supported_datasets)
-
-    parser.add_argument('--verbose', action='store_true',
-                        help='Prints a summary and the network repr after initializing the network.')
+    parser.add_argument('--verbose', action='store_true', help='Prints a summary and the network repr after '
+                                                               'initializing the network.')
     parser.add_argument('--export-to-inference', action='store_true', help='Set to save model for further inference.')
     parser.add_argument('--export-to-trainable', action='store_true', help='Set to save model as a trainable model.')
     parser.add_argument('--export-model-name', type=str, default='model', help='Name of the saved model.')
