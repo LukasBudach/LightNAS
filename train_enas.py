@@ -86,8 +86,6 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
                                            .with_suffix('.params').resolve()))
                 print('Trainable model has been exported to {}'.format(export_dir))
 
-
-
     # net is an ENAS_Sequential object
     net.initialize()
     # create an initial input for the network with the same dimensions as the data from the given train and val datasets
