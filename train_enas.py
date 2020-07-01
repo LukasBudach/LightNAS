@@ -126,9 +126,9 @@ def main(args):
         batch_fn = None
     # define a new name for this training
     now = datetime.now()
-    training_name = args.training_name if args.training_name is not None else args.network + '_{}_{}_{}_{}_{}'\
+    training_name = args.training_name if args.training_name is not None else args.model + '_{}_{}_{}_{}_{}'\
         .format(now.year, now.month, now.day, now.hour, now.minute)
-    train_net_enas(globals()[args.network](**kwargs).enas_sequential, args.epochs,
+    train_net_enas(globals()[args.model](**kwargs).enas_sequential, args.epochs,
                    train_dir=Path('./trainings/{}'.format(training_name)), train_set=train_set, val_set=val_set,
                    batch_size=args.batch_size, num_gpus=args.num_gpus, net_init_shape=init_shape, verbose=args.verbose,
                    export_model_name=args.export_model_name, export_to_inference=args.export_to_inference,
@@ -148,8 +148,10 @@ if __name__ == "__main__":
     parser.add_argument('-m', '--model', type=str, required=True, help='Network architecture to be trained (e.g. '
                                                                        'meliusnet22_enas).')
     parser.add_argument('--num-gpus', type=int, required=True, help='Number of available GPUs to use for the training.')
-    group = parser.add_mutually_exclusive_group(required=True)
+    parser.add_argument('--training-name', type=str, help='Name you want to use for this training run, will be used in '
+                                                          'log and model saving.')
 
+    group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--dataset', type=str, help='If --use-bmx-examples-datasets=False the Autogluon specifier for '
                                                    'the dataset to use for training. If --use-bmx-examples-datasets='
                                                    'True then the name of the bmxnet examples dataset to use.',
