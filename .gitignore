@@ -1,6 +1,5 @@
 ### custom items ###
 data/
-datasets/
 logs/
 tensorboard_logs/
 configs/
