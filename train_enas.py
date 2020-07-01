@@ -30,15 +30,15 @@ def create_mock_gluon_image_dataset(num_samples=10, img_width=32, img_height=32,
     return train_dataset, val_dataset
 
 
-def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_set='cifar100', val_set=None, num_gpus=0,
-                   net_init_shape=(1, 3, 32, 32), export_to_inference=True, export_to_trainable=True,
+def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', val_set=None,
+                   num_gpus=0, net_init_shape=(1, 3, 32, 32), export_to_inference=True, export_to_trainable=True,
                    export_model_name='teste01', verbose=True):
 
     def save_graph_val_fn(supernet, epoch):
-        viz_filepath = Path(log_dir + '/' + name + '/architectures/epoch_' + str(epoch) + '.dot')
-        txt_filepath = Path(log_dir + '/' + name + '/architectures/epoch_' + str(epoch) + '.txt')
+        viz_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.dot')
+        txt_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.txt')
 
-        # saves the vizualization
+        # saves the visualization
         viz_filepath.parent.mkdir(parents=True, exist_ok=True)
         print('\nSaving graph to ' + str(viz_filepath) + '\n')
         supernet.graph.save(viz_filepath)
@@ -64,19 +64,20 @@ def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_se
 
         for decision in option:
             if decision == 'inference':
-                # TODO: GENERATE MOCK DATA ACCORDING TO THE TRAIN SET
-                mock_data = mx.nd.random.normal(shape=(1, 3, 32, 32))
+                mock_data = mx.nd.random.normal(shape=net_init_shape)
                 hybnet = nn.HybridSequential()
                 for layer in supernet.prune():
                     hybnet.add(layer)
                 hybnet.hybridize()
                 hybnet(mock_data)
-                export_dir = 'exported_models/inference_only/'
-                hybnet.export(export_dir + export_model_name, epoch=epoch)
+                export_dir = train_dir / 'exported_models/inference_only'
+                export_dir.mkdir(parents=True, exist_ok=True)
+                hybnet.export(export_dir / export_model_name, epoch=epoch)
                 print('Inference model has been exported to {}'.format(export_dir))
             if decision == 'trainable':
-                export_dir = 'exported_models/trainables/'
-                hybnet.save_parameters(export_dir + export_model_name + '.params')
+                export_dir = train_dir / 'exported_models/trainables'
+                export_dir.mkdir(parents=True, exist_ok=True)
+                hybnet.save_parameters((export_dir / export_model_name).with_suffix('.params'))
                 print('Trainable model has been exported to {}'.format(export_dir))
             if decision == 'ignore':
                 return
@@ -85,7 +86,7 @@ def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_se
     # net is an ENAS_Sequential object
     net.initialize()
     # create an initial input for the network with the same dimensions as the data from the given train and val datasets
-    x = mx.nd.random.uniform(net_init_shape)
+    x = mx.nd.random.uniform(shape=net_init_shape)
     net(x)
 
     if verbose:
@@ -96,8 +97,8 @@ def train_net_enas(net, epochs, name, log_dir='./logs/', batch_size=64, train_se
     print('Average latency is {:.2f} ms, latency of the current architecture is {:.2f} ms'.format(net.avg_latency,
                                                                                                   net.latency))
     scheduler = ENAS_Scheduler(net, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
-                               warmup_epochs=0, epochs=epochs, controller_lr=3e-3,
-                               plot_frequency=10, update_arch_frequency=5, post_epoch_fn=save_graph_val_fn, post_epoch_save=save_model)
+                               warmup_epochs=0, epochs=epochs, controller_lr=3e-3, plot_frequency=10,
+                               update_arch_frequency=5, post_epoch_fn=save_graph_val_fn, post_epoch_save=save_model)
     scheduler.run()
 
 
@@ -106,13 +107,13 @@ def main(args):
     kwargs = {'initial_layers': args.initial_layers}
     if args.train_data is not None:
         kwargs['classes'] = dataset_prop[args.train_data][3]
-        init_shape = (1, dataset_prop[args.train_data][0], dataset_prop[args.train_data][1], dataset_prop[args.train_data][2])
+        init_shape = (1, dataset_prop[args.train_data][2], dataset_prop[args.train_data][0], dataset_prop[args.train_data][1])
         train_set = args.train_data
         val_set = args.val_data
     else:
         # since train set is not defined, we need to mock
         kwargs['classes'] = dataset_prop[args.mock][3]
-        init_shape = (1, dataset_prop[args.mock][0], dataset_prop[args.mock][1], dataset_prop[args.mock][2])
+        init_shape = (1, dataset_prop[args.mock][2], dataset_prop[args.mock][0], dataset_prop[args.mock][1])
         train_set, val_set = create_mock_gluon_image_dataset(img_width=dataset_prop[args.mock][0],
                                                              img_height=dataset_prop[args.mock][1],
                                                              num_channels=dataset_prop[args.mock][2])
@@ -120,9 +121,9 @@ def main(args):
     now = datetime.now()
     training_name = args.training_name if args.training_name is not None else args.network + '_{}_{}_{}_{}_{}'\
         .format(now.year, now.month, now.day, now.hour, now.minute)
-    train_net_enas(globals()[args.network](**kwargs).enas_sequential, args.epochs, training_name,
-                   train_set=train_set, val_set=val_set, batch_size=args.batch_size, num_gpus=args.num_gpus,
-                   net_init_shape=init_shape, verbose=args.verbose)
+    train_net_enas(globals()[args.network](**kwargs).enas_sequential, args.epochs,
+                   train_dir=Path('./trainings/{}'.format(training_name)), train_set=train_set, val_set=val_set,
+                   batch_size=args.batch_size, num_gpus=args.num_gpus, net_init_shape=init_shape, verbose=args.verbose)
 
 
 if __name__ == "__main__":
@@ -150,7 +151,7 @@ if __name__ == "__main__":
     parser.add_argument('--val-data', type=str,help='Autogluon specifier for the dataset to use for validation.',
                         choices=supported_datasets)
 
-    parser.add_argument('--verbose', type=bool, required=False,
+    parser.add_argument('--verbose', action='store_true',
                         help='Prints a summary and the network repr after initializing the network.')
     parser.add_argument('--export-to-inference', type=bool, required=False, help='If save model for further inference.')
     parser.add_argument('--export-to-trainable', type=bool, required=False, help='If save model as a trainable model.')
