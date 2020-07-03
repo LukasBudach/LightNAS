@@ -111,9 +111,9 @@ def main(args):
     # define additional arguments for the network construction
     kwargs = {'initial_layers': args.initial_layers}
     if args.dataset is not None:
-        kwargs['classes'] = dataset_prop[args.train_data][3]
-        init_shape = (1, dataset_prop[args.train_data][2], dataset_prop[args.train_data][0], dataset_prop[args.train_data][1])
-        train_set = args.train_data
+        kwargs['classes'] = dataset_prop[args.dataset][3]
+        init_shape = (1, dataset_prop[args.dataset][2], dataset_prop[args.dataset][0], dataset_prop[args.dataset][1])
+        train_set = args.dataset
         val_set = args.val_data
         batch_fn = None
         # if the mock training data is asked for, create the mock dataset for training and validation
