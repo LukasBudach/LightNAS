@@ -6,6 +6,7 @@ configs/
 .idea/
 dask-worker-space/
 *.ag
+trainings/
 
 
 
