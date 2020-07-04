@@ -97,6 +97,12 @@ class BasicBlockV1Enas(HybridBlock):
         if init:
             self._init(parameter_sharing_partner, conv1_weights, conv2_weights, downsample_conv_weights)
 
+    def latency_function(self, measured_forward_latency):
+        if self.bits == 32:
+            return 3
+        else:
+            return 3 * (0.25 + 0.75 * (self.bits / 32))
+
     def _init(self, parameter_sharing_partner=None, conv1_weights=None, conv2_weights=None, downsample_conv_weights=None):
         with self.name_scope():
             with set_binary_layer_config(bits = self.bits, bits_a=self.bits):
@@ -183,6 +189,12 @@ class BottleneckV1Enas(HybridBlock):
             if downsample:
                 self.downsample_conv_weights = self.downsample[0].qconv.params
 
+    def latency_function(self, measured_forward_latency):
+        if self.bits == 32:
+            return 3
+        else:
+            return 3 * (0.25 + 0.75 * (self.bits / 32))
+
     def hybrid_forward(self, F, x):
         residual = x
 
@@ -262,6 +274,12 @@ class BasicBlockV2Enas(HybridBlock):
                 if self.downsample:
                     self.downsample_conv_weights = self.downsample[0].qconv.params
 
+    def latency_function(self, measured_forward_latency):
+        if self.bits == 32:
+            return 3
+        else:
+            return 3 * (0.25 + 0.75 * (self.bits / 32))
+
     def hybrid_forward(self, F, x):
         bn = self.bn(x)
         if self.downsample:
@@ -327,6 +345,12 @@ class BottleneckV2Enas(HybridBlock):
             self.conv3_weights = self.conv3.params
             if downsample:
                 self.downsample_conv_weights = self.downsample.params
+
+    def latency_function(self, measured_forward_latency):
+        if self.bits == 32:
+            return 3
+        else:
+            return 3 * (0.25 + 0.75 * (self.bits / 32))
 
     def hybrid_forward(self, F, x):
         residual = x
