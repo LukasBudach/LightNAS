@@ -36,17 +36,23 @@ from mxnet.gluon.block import HybridBlock
 from mxnet.gluon import nn
 from mxnet import base
 
+from utils.binary_layers import BinaryLayerConfig
+from utils.binary_layers import set_binary_layer_config
+from utils.binary_layers import activated_conv, QConv2D
+
 import autogluon as ag
 from autogluon.contrib.enas import *
 
 # Helpers
-def _conv3x3(bits, channels, stride, in_channels):
-    return nn.QConv2D(channels, bits=bits, kernel_size=3,
-                      strides=stride, padding=1, in_channels=in_channels)
+def _conv3x3(bits, channels, stride, in_channels, params=None):
+    return QConv2D(channels, bits=bits, kernel_size=3,
+                   strides=stride, padding=1, in_channels=in_channels,
+                   method = BinaryLayerConfig._default_activation(bits),
+                   params=params)
 
 
 # Blocks
-@enas_unit(bits=ag.space.Categorical(1,2,4,8,16,32), share_parameters=True)
+@enas_unit(bits=ag.space.Categorical(1,32), share_parameters=True)
 class BasicBlockV1Enas(HybridBlock):
     r"""BasicBlock V1 from `"Deep Residual Learning for Image Recognition"
     <http://arxiv.org/abs/1512.03385>`_ paper.
@@ -64,32 +70,48 @@ class BasicBlockV1Enas(HybridBlock):
         Number of input channels. Default is 0, to infer from the graph.
     """
 
-    def __init__(self, channels, stride, downsample=False, in_channels=0, init=True, bits=1, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, channels, stride, downsample=False, in_channels=0, init=True, bits=1,
+                 parameter_sharing_partner=None, **kwargs):
+        if parameter_sharing_partner:
+            super().__init__(params = parameter_sharing_partner.params, **kwargs)
+        else:
+            super().__init__(**kwargs)
         self.channels = channels
         self.stride = stride
         self.in_channels = in_channels
         self.bits = bits
 
+        conv1_weights = None
+        conv2_weights = None
+        downsample_conv_weights = None
+        if parameter_sharing_partner:
+            conv1_weights = parameter_sharing_partner.body[0].qconv.params
+            conv2_weights = parameter_sharing_partner.body[2].qconv.params
+
         self.body = nn.HybridSequential(prefix='')
         self.downsample = None
         if downsample:
             self.downsample = nn.HybridSequential(prefix='')
+            if parameter_sharing_partner:
+                downsample_conv_weights = parameter_sharing_partner.downsample[0].qconv.params
         if init:
-            self._init()
+            self._init(parameter_sharing_partner, conv1_weights, conv2_weights, downsample_conv_weights)
 
-    def _init(self):
-        self.body.add(nn.activated_conv(self.channels, kernel_size=3, stride=self.stride, padding=1,
-                                        in_channels=self.in_channels, bits=self.bits))
-        self.body.add(nn.BatchNorm())
-        self.body.add(nn.activated_conv(self.channels, kernel_size=3, stride=1, padding=1,
-                                        in_channels=self.channels, bits=self.bits))
-        self.body.add(nn.BatchNorm())
+    def _init(self, parameter_sharing_partner=None, conv1_weights=None, conv2_weights=None, downsample_conv_weights=None):
+        with self.name_scope():
+            with set_binary_layer_config(bits = self.bits, bits_a=self.bits):
+                self.body.add(activated_conv(self.channels, kernel_size=3, stride=self.stride, padding=1,
+                                                in_channels=self.in_channels, params=conv1_weights))
+                self.body.add(nn.BatchNorm())
+                self.body.add(activated_conv(self.channels, kernel_size=3, stride=1, padding=1,
+                                                in_channels=self.channels, params=conv2_weights))
+                self.body.add(nn.BatchNorm())
 
-        if self.downsample is not None:
-            self.downsample.add(nn.activated_conv(self.channels, kernel_size=1, stride=self.stride, padding=0,
-                                                  in_channels=self.in_channels, prefix="sc_qconv_", bits=self.bits))
-            self.downsample.add(nn.BatchNorm())
+                if self.downsample is not None:
+                    self.downsample.add(activated_conv(self.channels, kernel_size=1, stride=self.stride, padding=0,
+                                                          in_channels=self.in_channels, #prefix="sc_qconv_",
+                                                          params=downsample_conv_weights))
+                    self.downsample.add(nn.BatchNorm())
 
     def hybrid_forward(self, F, x):
         residual = x
@@ -99,7 +121,7 @@ class BasicBlockV1Enas(HybridBlock):
         # usually activation here, but it is now at start of each unit
         return residual + x
 
-@enas_unit(bits=ag.space.Categorical(1,2,4,8,16,32), share_parameters=True)
+@enas_unit(bits=ag.space.Categorical(1,32), share_parameters=True)
 class BottleneckV1Enas(HybridBlock):
     r"""Bottleneck V1 from `"Deep Residual Learning for Image Recognition"
     <http://arxiv.org/abs/1512.03385>`_ paper.
@@ -117,25 +139,49 @@ class BottleneckV1Enas(HybridBlock):
         Number of input channels. Default is 0, to infer from the graph.
     """
 
-    def __init__(self, channels, stride,downsample=False, in_channels=0, bits=1, **kwargs):
-        super().__init__(**kwargs)
-        self.bits = bits
-        self.body = nn.HybridSequential(prefix='')
-        self.body.add(nn.QConv2D(channels // 4, kernel_size=1, strides=stride, bits=self.bits))
-        self.body.add(nn.BatchNorm())
-        self.body.add(nn.Activation('relu'))
-        self.body.add(_conv3x3(channels // 4, 1, channels // 4, bits=self.bits))
-        self.body.add(nn.BatchNorm())
-        self.body.add(nn.Activation('relu'))
-        self.body.add(nn.QConv2D(channels, kernel_size=1, strides=1, bits=self.bits))
-        self.body.add(nn.BatchNorm())
-        if downsample:
-            self.downsample = nn.HybridSequential(prefix='')
-            self.downsample.add(nn.QConv2D(channels, kernel_size=1, strides=stride,
-                                           use_bias=False, in_channels=in_channels, bits=self.bits))
-            self.downsample.add(nn.BatchNorm())
+    def __init__(self, channels, stride,downsample=False, in_channels=0, bits=1, parameter_sharing_partner=None,
+                 **kwargs):
+        if parameter_sharing_partner:
+            super().__init__(params=parameter_sharing_partner.params, **kwargs)
         else:
-            self.downsample = None
+            super().__init__(**kwargs)
+        self.bits = bits
+        self.conv1_weights = None
+        self.conv2_weights = None
+        self.conv3_weights = None
+        self.downsample_conv_weights = None
+        if parameter_sharing_partner:
+            self.conv1_weights = parameter_sharing_partner.conv1_weights
+            self.conv2_weights = parameter_sharing_partner.conv2_weights
+            self.conv3_weights = parameter_sharing_partner.conv3_weights
+            if downsample:
+                self.downsample_conv_weights = parameter_sharing_partner.downsample_conv_weights
+
+
+        with set_binary_layer_config(bits = self.bits, bits_a=self.bits):
+            self.body = nn.HybridSequential(prefix='')
+            self.body.add(QConv2D(channels // 4, kernel_size=1, strides=stride, params=self.conv1_weights))
+            self.body.add(nn.BatchNorm())
+            self.body.add(nn.Activation('relu'))
+            self.body.add(_conv3x3(channels // 4, 1, channels // 4, params=self.conv2_weights))
+            self.body.add(nn.BatchNorm())
+            self.body.add(nn.Activation('relu'))
+            self.body.add(QConv2D(channels, kernel_size=1, strides=1, params=self.conv3_weights))
+            self.body.add(nn.BatchNorm())
+            if downsample:
+                self.downsample = nn.HybridSequential(prefix='')
+                self.downsample.add(QConv2D(channels, kernel_size=1, strides=stride,
+                                            use_bias=False, in_channels=in_channels,
+                                            params=self.downsample_conv_weights))
+                self.downsample.add(nn.BatchNorm())
+            else:
+                self.downsample = None
+        if not parameter_sharing_partner:
+            self.conv1_weights = self.body[0].params
+            self.conv2_weights = self.body[3].params
+            self.conv3_weights = self.body[6].params
+            if downsample:
+                self.downsample_conv_weights = self.downsample[0].qconv.params
 
     def hybrid_forward(self, F, x):
         residual = x
@@ -148,7 +194,7 @@ class BottleneckV1Enas(HybridBlock):
         x = F.Activation(x + residual, act_type='relu')
         return x
 
-@enas_unit(bits=ag.space.Categorical(1,2,4,8,16,32), share_parameters=True)
+@enas_unit(bits=ag.space.Categorical(1,32), share_parameters=True)
 class BasicBlockV2Enas(HybridBlock):
     r"""BasicBlock V2 from
     `"Identity Mappings in Deep Residual Networks"
@@ -167,8 +213,12 @@ class BasicBlockV2Enas(HybridBlock):
         Number of input channels. Default is 0, to infer from the graph.
     """
 
-    def __init__(self, channels, stride, downsample=False, in_channels=0, init=True, bits=1, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, channels, stride, downsample=False, in_channels=0, init=True, bits=1,
+                 parameter_sharing_partner=None, **kwargs):
+        if parameter_sharing_partner:
+            super().__init__(params=parameter_sharing_partner.params, **kwargs)
+        else:
+            super().__init__(**kwargs)
         self.channels = channels
         self.stride = stride
         self.bits = bits
@@ -176,23 +226,41 @@ class BasicBlockV2Enas(HybridBlock):
 
         self.bn = nn.BatchNorm()
         self.body = nn.HybridSequential(prefix='')
+
+        self.conv1_weights = None
+        self.conv2_weights = None
+        if parameter_sharing_partner:
+            self.conv1_weights = parameter_sharing_partner.conv1_weights
+            self.conv2_weights = parameter_sharing_partner.conv2_weights
+
         self.downsample = None
         if downsample:
             self.downsample = nn.HybridSequential(prefix='')
+            if parameter_sharing_partner:
+                self.downsample_conv_weights = parameter_sharing_partner.downsample_conv_weights
+            else:
+                self.downsample_conv_weights = None
 
         if init:
-            self._init()
+            self._init(parameter_sharing_partner)
 
-    def _init(self):
-        self.body.add(nn.activated_conv(self.channels, kernel_size=3, stride=self.stride, padding=1,
-                                        in_channels=self.in_channels, bits=self.bits))
-        self.body.add(nn.BatchNorm())
-        self.body.add(nn.activated_conv(self.channels, kernel_size=3, stride=1, padding=1, 
-                                        in_channels=self.channels, bits=self.bits))
+    def _init(self, parameter_sharing_partner=None):
+        with set_binary_layer_config(bits = self.bits, bits_a=self.bits):
+            self.body.add(activated_conv(self.channels, kernel_size=3, stride=self.stride, padding=1,
+                                            in_channels=self.in_channels, params=self.conv1_weights))
+            self.body.add(nn.BatchNorm())
+            self.body.add(activated_conv(self.channels, kernel_size=3, stride=1, padding=1,
+                                            in_channels=self.channels, params=self.conv2_weights))
 
-        if self.downsample is not None:
-            self.downsample.add(nn.activated_conv(self.channels, kernel_size=1, stride=self.stride, padding=0,
-                                                  in_channels=self.in_channels, prefix="sc_qconv_", bits=self.bits))
+            if self.downsample is not None:
+                self.downsample.add(activated_conv(self.channels, kernel_size=1, stride=self.stride, padding=0,
+                                                   in_channels=self.in_channels, #prefix="sc_qconv_",
+                                                   params=self.downsample_conv_weights))
+            if not parameter_sharing_partner:
+                self.conv1_weights = self.body[0].qconv.params
+                self.conv2_weights = self.body[2].qconv.params
+                if self.downsample:
+                    self.downsample_conv_weights = self.downsample[0].qconv.params
 
     def hybrid_forward(self, F, x):
         bn = self.bn(x)
@@ -203,7 +271,7 @@ class BasicBlockV2Enas(HybridBlock):
         x = self.body(bn)
         return residual + x
 
-@enas_unit(bits=ag.space.Categorical(1,2,4,8,16,32), share_parameters=True)
+@enas_unit(bits=ag.space.Categorical(1,32), share_parameters=True)
 class BottleneckV2Enas(HybridBlock):
     r"""Bottleneck V2 from
     `"Identity Mappings in Deep Residual Networks"
@@ -222,20 +290,43 @@ class BottleneckV2Enas(HybridBlock):
         Number of input channels. Default is 0, to infer from the graph.
     """
 
-    def __init__(self, channels, stride, downsample=False, in_channels=0, bits=1, **kwargs):
-        super().__init__(**kwargs)
-        self.bits = bits
-        self.bn1 = nn.BatchNorm()
-        self.conv1 = nn.QConv2D(channels // 4, kernel_size=1, strides=1, use_bias=False, bits=self.bits)
-        self.bn2 = nn.BatchNorm()
-        self.conv2 = _conv3x3(channels // 4, stride, channels // 4, bits=self.bits)
-        self.bn3 = nn.BatchNorm()
-        self.conv3 = nn.QConv2D(channels, kernel_size=1, strides=1, use_bias=False, bits=self.bits)
-        if downsample:
-            self.downsample = nn.QConv2D(channels, 1, stride, use_bias=False,
-                                         in_channels=in_channels, bits=self.bits)
+    def __init__(self, channels, stride, downsample=False, in_channels=0, bits=1, parameter_sharing_partner=None,
+                 **kwargs):
+        if parameter_sharing_partner:
+            super().__init__(params=parameter_sharing_partner.params, **kwargs)
         else:
-            self.downsample = None
+            super().__init__(**kwargs)
+        self.bits = bits
+        self.conv1_weights = None
+        self.conv2_weights = None
+        self.conv3_weights = None
+        self.downsample_conv_weights = None
+        if parameter_sharing_partner:
+            self.conv1_weights = parameter_sharing_partner.conv1_weights
+            self.conv2_weights = parameter_sharing_partner.conv2_weights
+            self.conv3_weights = parameter_sharing_partner.conv3_weights
+            if downsample:
+                self.downsample_conv_weights = parameter_sharing_partner.downsample_conv_weights
+
+        with set_binary_layer_config(bits = self.bits, bits_a=self.bits):
+            self.bn1 = nn.BatchNorm()
+            self.conv1 = QConv2D(channels // 4, kernel_size=1, strides=1, use_bias=False, params=self.conv1_weights)
+            self.bn2 = nn.BatchNorm()
+            self.conv2 = _conv3x3(channels // 4, stride, channels // 4, bits=self.bits, params=self.conv2_weights)
+            self.bn3 = nn.BatchNorm()
+            self.conv3 = QConv2D(channels, kernel_size=1, strides=1, use_bias=False, params=self.conv3_weights)
+            if downsample:
+                self.downsample = QConv2D(channels, 1, stride, use_bias=False,
+                                          in_channels=in_channels, params=self.downsample_weights)
+            else:
+                self.downsample = None
+
+        if not parameter_sharing_partner:
+            self.conv1_weights = self.conv1.params
+            self.conv2_weights = self.conv2.params
+            self.conv3_weights = self.conv3.params
+            if downsample:
+                self.downsample_conv_weights = self.downsample.params
 
     def hybrid_forward(self, F, x):
         residual = x
@@ -263,19 +354,19 @@ class ResNetEnas():
         self.output = nn.Dense(classes, in_units=channels[-1])
 
     r"""Helper methods which are equal for both resnets"""
-    def _make_layer(self, block, layers, channels, stride, stage_index, in_channels=0, **kwargs):
+    def _make_layer(self, block, num_layers, channels, stride, stage_index, in_channels=0):
         layers = []
-        layers.append(block(channels, stride, channels != in_channels, in_channels=in_channels, prefix='', **kwargs))
-        for _ in range(layers - 1):
-            layers.append(block(channels, 1, False, in_channels=channels, prefix='', **kwargs))
+        layers.append(block(channels, stride, channels != in_channels, in_channels=in_channels, prefix=''))
+        for _ in range(num_layers - 1):
+            layers.append(block(channels, 1, False, in_channels=channels, prefix=''))
         return layers
 
     @property
     def enas_sequential(self):
         enas_sequential = []
         enas_sequential.extend(self.features)
-        enas_sequential.extend(self.output)
-        return enas_sequential
+        enas_sequential.append(self.output)
+        return ENAS_Sequential(enas_sequential)
 
 
 # Nets
@@ -310,7 +401,7 @@ class ResNetV1Enas(ResNetEnas):
 
         for i, num_layer in enumerate(layers):
             stride = 1 if i == 0 else 2
-            self.features.append(
+            self.features.extend(
                 self._make_layer(block, num_layer, channels[i + 1], stride, i + 1, in_channels=channels[i]))
 
         self.features.append(nn.Activation('relu'))
@@ -350,7 +441,7 @@ class ResNetV2Enas(ResNetEnas):
         in_channels = channels[0]
         for i, num_layer in enumerate(layers):
             stride = 1 if i == 0 else 2
-            self.features.append(
+            self.features.extend(
                 self._make_layer(block, num_layer, channels[i + 1], stride, i + 1, in_channels=in_channels))
             in_channels = channels[i + 1]
 
