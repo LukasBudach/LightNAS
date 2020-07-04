@@ -2,7 +2,7 @@
 data/
 logs/
 tensorboard_logs/
-configs/autosaved
+configs/autosaved/
 .idea/
 dask-worker-space/
 *.ag
