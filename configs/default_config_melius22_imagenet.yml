@@ -1,7 +1,7 @@
-batch_size: 64
+batch_size: 32
 config: configs/default_config_melius22_cifar100.yml
-data_dir: /data/common/ImageNet/rec/
-dataset: imagenet
+data_dir: /mnt/ssd/datasets/ImageNet/extracted/rec
+dataset: cifar100
 epochs: 100
 export_model_name: model
 export_to_inference: true
@@ -9,8 +9,8 @@ export_to_trainable: true
 initial_layers: thumbnail
 mock: null
 model: meliusnet22_enas
-num_gpus: 0
-num_workers: 0
+num_gpus: 1
 training_name: null
-use_bmx_examples_datasets: true
+use_bmx_examples_datasets: false
+augmentation: medium
 verbose: true

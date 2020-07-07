@@ -33,8 +33,8 @@ def create_mock_gluon_image_dataset(num_samples=10, img_width=32, img_height=32,
 
 
 def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', val_set=None,
-                   num_gpus=0, net_init_shape=(1, 3, 32, 32), export_to_inference=True, export_to_trainable=True,
-                   export_model_name='teste01', verbose=True, custom_batch_fn=None):
+                   num_gpus=0, num_workers=4, net_init_shape=(1, 3, 32, 32), export_to_inference=True,
+                   export_to_trainable=True, export_model_name='teste01', verbose=True, custom_batch_fn=None):
 
     def save_graph_val_fn(supernet, epoch):
         viz_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.dot')
@@ -103,7 +103,7 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
     scheduler = ENAS_Scheduler(net, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3, plot_frequency=10,
                                update_arch_frequency=5, post_epoch_fn=save_graph_val_fn, post_epoch_save=save_model,
-                               custom_batch_fn = custom_batch_fn)
+                               custom_batch_fn = custom_batch_fn, num_cpus=num_workers)
     scheduler.run()
 
 
@@ -118,7 +118,7 @@ def main(args):
         batch_fn = None
         # if the mock training data is asked for, create the mock dataset for training and validation
         if args.use_bmx_examples_datasets:
-            train_data, val_data, batch_fn = get_data_iters(args)
+            train_set, val_set, batch_fn = get_data_iters(args)
     else:
         # since train set is not defined, we need to mock
         kwargs['classes'] = dataset_prop[args.mock][3]
@@ -133,9 +133,10 @@ def main(args):
         .format(now.year, now.month, now.day, now.hour, now.minute)
     train_net_enas(globals()[args.model](**kwargs).enas_sequential, args.epochs,
                    train_dir=Path('./trainings/{}'.format(training_name)), train_set=train_set, val_set=val_set,
-                   batch_size=args.batch_size, num_gpus=args.num_gpus, net_init_shape=init_shape, verbose=args.verbose,
-                   export_model_name=args.export_model_name, export_to_inference=args.export_to_inference,
-                   export_to_trainable=args.export_to_trainable, custom_batch_fn=batch_fn)
+                   batch_size=args.batch_size, num_gpus=args.num_gpus, num_workers=args.num_workers,
+                   net_init_shape=init_shape, verbose=args.verbose, export_model_name=args.export_model_name,
+                   export_to_inference=args.export_to_inference, export_to_trainable=args.export_to_trainable,
+                   custom_batch_fn=batch_fn)
 
 
 if __name__ == "__main__":
@@ -167,7 +168,7 @@ if __name__ == "__main__":
                                                                                  ' from bmxnet_examples should be used.')
     parser.add_argument('--data-dir', type=str, help='Path to the directory containing the datasets. Required when '
                                                      'using the imagenet dataset from the bmxnet examples datasets.')
-    parser.add_argument('--num-workers', type=int, default=0, help='Number of threads used for data loading. Default is'
+    parser.add_argument('--num-workers', type=int, default=4, help='Number of threads used for data loading. Default is'
                                                                    ' 0 (all work is done in main thread).')
 
     parser.add_argument('--verbose', action='store_true', help='Prints a summary and the network repr after '
@@ -175,5 +176,7 @@ if __name__ == "__main__":
     parser.add_argument('--export-to-inference', action='store_true', help='Set to save model for further inference.')
     parser.add_argument('--export-to-trainable', action='store_true', help='Set to save model as a trainable model.')
     parser.add_argument('--export-model-name', type=str, default='model', help='Name of the saved model.')
+    parser.add_argument('--augmentation', choices=["low", "medium", "high"], default="medium",
+                      help='How much augmentation should be used. Only considered when bmx-examples-datasets are used.')
 
     main(parser.parse_args())
