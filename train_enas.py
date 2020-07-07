@@ -19,7 +19,7 @@ from bmxnet_examples.datasets.util import get_data_iters
 dataset_prop = {
     'cifar10': [32, 32, 3, 10],
     'cifar100': [32, 32, 3, 100],
-    'imagenet': [0, 0, 3, 0]    # TODO: not sure what dimension the imagenet images Joseph provides have and whether they need to be cropped or not
+    'imagenet': [224, 224, 3, 1000]
 }
 
 

@@ -4,7 +4,7 @@ data_dir: null
 dataset: cifar100
 epochs: 100
 export_model_name: model
-export_to_inference: true
+export_to_inference: false
 export_to_trainable: true
 initial_layers: thumbnail
 model: resnet18_v1_enas
