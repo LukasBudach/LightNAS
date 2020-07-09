@@ -1,4 +1,4 @@
-batch_size: 32
+batch_size: 64
 config: configs/default_config_melius22_imagenet.yml
 data_dir: /mnt/ssd/datasets/ImageNet/extracted/rec
 dataset: imagenet
