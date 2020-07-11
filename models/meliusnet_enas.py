@@ -46,7 +46,6 @@ class ImprovementBlockEnas(HybridBlock):
             self.body.add(nn.activated_conv(channels=channels, kernel_size=3, stride=1,
                                             padding=dilation, in_channels=in_channels, dilation=dilation))
 
-
             self.use_sliced_addition = channels != in_channels
             if self.use_sliced_addition:
                 assert channels < in_channels

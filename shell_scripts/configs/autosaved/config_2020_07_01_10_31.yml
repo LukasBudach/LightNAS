@@ -1,0 +1,15 @@
+batch_size: 2
+config: configs/autosaved/config_2020_07_01_10_31.yml
+data_dir: null
+dataset: cifar100
+epochs: 100
+export_model_name: null
+export_to_inference: null
+export_to_trainable: null
+initial_layers: thumbnail
+model: meliusnet22_enas
+num_classes: 10
+num_gpus: 1
+num_workers: 0
+use_bmx_examples_datasets: false
+verbose: true
