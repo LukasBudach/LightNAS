@@ -3,6 +3,7 @@ config: configs/default_config_melius22_cifar100_imagenet_init.yml
 data_dir: null
 dataset: cifar100
 epochs: 100
+eval_split_percentage: 0.3
 export_model_name: model
 export_to_inference: true
 export_to_trainable: true
