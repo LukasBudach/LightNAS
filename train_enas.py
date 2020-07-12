@@ -36,26 +36,24 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
                    num_gpus=0, num_workers=4, net_init_shape=(1, 3, 32, 32), export_to_inference=True,
                    export_to_trainable=True, export_model_name='teste01', verbose=True, custom_batch_fn=None):
 
-    from autogluon.task.image_classification.dataset import get_built_in_dataset
-    val_set = get_built_in_dataset('cifar10', train=False, batch_size=128,
-                                   num_workers=2, shuffle=True)
-    print(type(val_set))
-    if isinstance(val_set, mx.gluon.data.Dataset):
-        # split the validation set into an evaluation and validation set
-        print(len(val_set))
-        eval_part = round(len(val_set) * 0.4)
-        print(eval_part)
-        eval_set = tuple([[], []])
-        for i in range(eval_part):
-            eval_set[0].append(val_set[i][0])
-            eval_set[1].append(val_set[i][1])
-        print(type(eval_set))
-        eval_set = mx.gluon.data.ArrayDataset(eval_set[0], eval_set[1])
-        print(len(eval_set))
-        print(type(eval_set))
-
-
-    return
+    # from autogluon.task.image_classification.dataset import get_built_in_dataset
+    # val_set = get_built_in_dataset('cifar10', train=False, batch_size=128,
+    #                                num_workers=2, shuffle=True)
+    # print(type(val_set))
+    # if isinstance(val_set, mx.gluon.data.Dataset):
+    #     # split the validation set into an evaluation and validation set
+    #     print(len(val_set))
+    #     eval_part = round(len(val_set) * 0.4)
+    #     print(eval_part)
+    #     eval_set = tuple([[], []])
+    #     for i in range(eval_part):
+    #         eval_set[0].append(val_set[i][0])
+    #         eval_set[1].append(val_set[i][1])
+    #     print(type(eval_set))
+    #     eval_set = mx.gluon.data.ArrayDataset(eval_set[0], eval_set[1])
+    #     print(len(eval_set))
+    #     print(type(eval_set))
+    # return
 
     def save_graph_val_fn(supernet, epoch):
         viz_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.dot')
