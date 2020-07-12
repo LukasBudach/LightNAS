@@ -23,7 +23,7 @@ dataset_prop = {
 }
 
 
-def create_mock_gluon_image_dataset(num_samples=10, img_width=32, img_height=32, num_channels=3, num_classes=10):
+def create_mock_gluon_image_dataset(num_samples=100, img_width=32, img_height=32, num_channels=3, num_classes=10):
     X = nd.random.uniform(shape=(num_samples,num_channels,img_height,img_width))
     y = nd.random.randint(0, num_classes, shape=(num_samples,1))
     train_dataset = mx.gluon.data.dataset.ArrayDataset(X,y)
