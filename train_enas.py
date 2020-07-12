@@ -45,9 +45,14 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
         print(len(val_set))
         eval_part = round(len(val_set) * 0.4)
         print(eval_part)
-        eval_set = val_set[0:eval_part]
+        eval_set = tuple([[], []])
+        for i in range(eval_part):
+            eval_set[0].append(val_set[i][0])
+            eval_set[1].append(val_set[i][1])
         print(type(eval_set))
         eval_set = mx.gluon.data.ArrayDataset(eval_set[0], eval_set[1])
+        print(len(eval_set))
+        print(type(eval_set))
 
 
     return
