@@ -3,7 +3,7 @@ config: configs/default_config_melius22_imagenet.yml
 data_dir: /mnt/ssd/datasets/ImageNet/extracted/rec
 dataset: imagenet
 epochs: 100
-eval_split_percentage: 0.5
+eval_split_percentage: 0.3
 export_model_name: model
 export_to_inference: true
 export_to_trainable: true
