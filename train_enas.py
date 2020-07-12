@@ -40,7 +40,7 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
     val_set = get_built_in_dataset('cifar10', train=False, batch_size=128,
                                    num_workers=2, shuffle=True)
     print(type(val_set))
-    if isinstance(train_set, mx.gluon.data.Dataset):
+    if isinstance(val_set, mx.gluon.data.Dataset):
         # split the validation set into an evaluation and validation set
         print(len(val_set))
         eval_part = round(len(val_set) * 0.4)
