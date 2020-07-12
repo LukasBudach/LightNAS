@@ -1,0 +1,16 @@
+batch_size: 64
+config: configs/cifar10.yml
+data_dir: null
+dataset: cifar10
+epochs: 5
+export_model_name: model
+export_to_inference: true
+export_to_trainable: true
+initial_layers: thumbnail
+mock: null
+model: meliusnet22_enas
+num_gpus: 1
+num_workers: 8
+training_name: cifarTenTest
+use_bmx_examples_datasets: false
+verbose: true
