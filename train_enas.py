@@ -34,7 +34,8 @@ def create_mock_gluon_image_dataset(num_samples=10, img_width=32, img_height=32,
 
 def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', val_set=None,
                    num_gpus=0, num_workers=4, net_init_shape=(1, 3, 32, 32), export_to_inference=True,
-                   export_to_trainable=True, export_model_name='teste01', verbose=True, custom_batch_fn=None):
+                   export_to_trainable=True, export_model_name='teste01', verbose=True, custom_batch_fn=None,
+                   eval_split_pct=0.5):
 
     def save_graph_val_fn(supernet, epoch):
         viz_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.dot')
@@ -103,7 +104,7 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
     scheduler = ENAS_Scheduler(net, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3, plot_frequency=10,
                                update_arch_frequency=5, post_epoch_fn=save_graph_val_fn, post_epoch_save=save_model,
-                               custom_batch_fn = custom_batch_fn, num_cpus=num_workers)
+                               custom_batch_fn = custom_batch_fn, num_cpus=num_workers, eval_split_pct=eval_split_pct)
     scheduler.run()
 
 
@@ -136,7 +137,7 @@ def main(args):
                    batch_size=args.batch_size, num_gpus=args.num_gpus, num_workers=args.num_workers,
                    net_init_shape=init_shape, verbose=args.verbose, export_model_name=args.export_model_name,
                    export_to_inference=args.export_to_inference, export_to_trainable=args.export_to_trainable,
-                   custom_batch_fn=batch_fn)
+                   custom_batch_fn=batch_fn, eval_split_pct=args.eval_split_percentage)
 
 
 if __name__ == "__main__":
@@ -178,5 +179,8 @@ if __name__ == "__main__":
     parser.add_argument('--export-model-name', type=str, default='model', help='Name of the saved model.')
     parser.add_argument('--augmentation', choices=["low", "medium", "high"], default="medium",
                       help='How much augmentation should be used. Only considered when bmx-examples-datasets are used.')
+
+    parser.add_argument('--eval-split-percentage', type=float, required=True,
+                        help='Percentage of the validation data that should be held back for an additional evaluation loop.')
 
     main(parser.parse_args())
