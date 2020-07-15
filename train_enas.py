@@ -68,9 +68,9 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
             return new_val_dataset, eval_dataset
 
         if isinstance(train_set, str):
-            train_set = get_built_in_dataset(dataset_name, train=True, batch_size=batch_size,
+            train_set = get_built_in_dataset(train_set, train=True, batch_size=batch_size,
                                              num_workers=num_workers, shuffle=True)
-            val_set = get_built_in_dataset(dataset_name, train=False, batch_size=batch_size,
+            val_set = get_built_in_dataset(val_set, train=False, batch_size=batch_size,
                                            num_workers=num_workers, shuffle=True)
         if isinstance(train_set, mx.gluon.data.Dataset):
             # split the validation set into an evaluation and validation set
@@ -169,7 +169,7 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
     if verbose:
         print(net)
         net.summary(x)
-        
+
     y = net.evaluate_latency(x)
     print('Average latency is {:.2f} ms, latency of the current architecture is {:.2f} ms'.format(net.avg_latency,
                                                                                                   net.latency))
