@@ -50,6 +50,8 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
         from autogluon.task.image_classification.dataset import get_built_in_dataset
         from autogluon.utils.dataloader import DataLoader
 
+        print('There will be post training evaluation and no post epoch evaluation!')
+
         def split_val_data(val_dataset):
             eval_part = round(len(val_dataset) * eval_split_pct)
             print('The first {}% of the validation dataset will be held back for evaluation instead.'.format(eval_split_pct*100))
