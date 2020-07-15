@@ -12,6 +12,7 @@ mock: cifar100
 model: resnet18_v1_enas
 num_gpus: 1
 num_workers: 0
+only_post_training_eval: true
 training_name: null
 use_bmx_examples_datasets: false
 verbose: true

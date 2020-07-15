@@ -35,8 +35,68 @@ def create_mock_gluon_image_dataset(num_samples=100, img_width=32, img_height=32
 def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', val_set=None,
                    num_gpus=0, num_workers=4, net_init_shape=(1, 3, 32, 32), export_to_inference=True,
                    export_to_trainable=True, export_model_name='teste01', verbose=True, custom_batch_fn=None,
-                   eval_split_pct=0.5):
+                   eval_split_pct=0.5, external_eval=False):
 
+    if export_to_inference and export_to_trainable:
+        option = ['inference', 'trainable']
+    elif export_to_inference:
+        option = ['inference']
+    elif export_to_trainable:
+        option = ['trainable']
+    else:
+        option = ['ignore']
+
+    if external_eval:
+        from autogluon.task.image_classification.dataset import get_built_in_dataset
+        from autogluon.utils.dataloader import DataLoader
+
+        def split_val_data(val_dataset):
+            eval_part = round(len(val_dataset) * eval_split_pct)
+            print('The first {}% of the validation dataset will be held back for evaluation instead.'.format(eval_split_pct*100))
+            eval_dataset = tuple([[], []])
+            new_val_dataset = tuple([[], []])
+            for i in range(eval_part):
+                eval_dataset[0].append(val_dataset[i][0])
+                eval_dataset[1].append(val_dataset[i][1])
+            for i in range(eval_part, len(val_dataset)):
+                new_val_dataset[0].append(val_dataset[i][0])
+                new_val_dataset[1].append(val_dataset[i][1])
+
+            eval_dataset = mx.gluon.data.ArrayDataset(eval_dataset[0], eval_dataset[1])
+            new_val_dataset = mx.gluon.data.ArrayDataset(new_val_dataset[0], new_val_dataset[1])
+
+            return new_val_dataset, eval_dataset
+
+        if isinstance(train_set, str):
+            train_set = get_built_in_dataset(dataset_name, train=True, batch_size=batch_size,
+                                             num_workers=num_workers, shuffle=True)
+            val_set = get_built_in_dataset(dataset_name, train=False, batch_size=batch_size,
+                                           num_workers=num_workers, shuffle=True)
+        if isinstance(train_set, gluon.data.Dataset):
+            # split the validation set into an evaluation and validation set
+            val_dataset, eval_dataset = split_val_data(val_set)
+
+            train_set = DataLoader(
+                    train_set, batch_size=batch_size, shuffle=True,
+                    last_batch="discard", num_workers=num_workers)
+            # very important, make shuffle for training contoller
+            val_set = DataLoader(
+                    val_dataset, batch_size=batch_size, shuffle=True,
+                    num_workers=num_workers, prefetch=0, sample_times=10)  # sample_times = ENASScheduler controller_batchsize
+            eval_set = DataLoader(
+                    eval_dataset, batch_size=batch_size, shuffle=True,
+                    num_workers=num_workers, prefetch=0, sample_times=10)  # sample_times = ENASScheduler controller_batchsize
+        elif isinstance(train_set, gluon.data.dataloader.DataLoader):
+            val_dataset, eval_dataset = split_val_data(val_set._dataset)
+
+
+            val_set = DataLoader.from_other_with_dataset(val_set, val_dataset)
+            eval_set = DataLoader.from_other_with_dataset(val_set, eval_dataset)
+
+        eval_split_pct = 0
+
+
+########################################## Functions ##########################################
     def save_graph_val_fn(supernet, epoch):
         viz_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.dot')
         txt_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.txt')
@@ -51,15 +111,6 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
         txt_file = open(txt_filepath, "w")
         txt_file.write(supernet.__repr__())
         txt_file.close()
-
-    if export_to_inference and export_to_trainable:
-        option = ['inference', 'trainable']
-    elif export_to_inference:
-        option = ['inference']
-    elif export_to_trainable:
-        option = ['trainable']
-    else:
-        option = ['ignore']
 
     def save_model(supernet, epoch):
         if export_model_name is None:
@@ -88,6 +139,23 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
                                            .with_suffix('.params').resolve()))
                 print('Trainable model has been exported to {}'.format(export_dir))
 
+    def evaluation(sched):
+        if hasattr(eval_set, 'reset'): eval_set.reset()
+        # data iter, avoid memory leak
+        it = iter(eval_set)
+        if hasattr(it, 'reset_sample_times'): it.reset_sample_times()
+        tbar = tqdm(it)
+        # update network arc
+        config = sched.controller.inference()
+        sched.supernet.sample(**config)
+        metric = mx.metric.Accuracy()
+        for batch in tbar:
+            sched.eval_fn(sched.supernet, batch, metric=metric, **sched.val_args)
+            reward = metric.get()[1]
+            tbar.set_description('Eval Acc: {}'.format(reward))
+
+########################################## Network Training ##########################################
+
     # net is an ENAS_Sequential object
     net.initialize()
     # create an initial input for the network with the same dimensions as the data from the given train and val datasets
@@ -104,8 +172,12 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
     scheduler = ENAS_Scheduler(net, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3, plot_frequency=10,
                                update_arch_frequency=5, post_epoch_fn=save_graph_val_fn, post_epoch_save=save_model,
-                               custom_batch_fn = custom_batch_fn, num_cpus=num_workers, eval_split_pct=eval_split_pct)
+                               custom_batch_fn = custom_batch_fn, num_cpus=num_workers, eval_split_pct=eval_split_pct,
+                               external_eval=args.only_post_training_eval)
     scheduler.run()
+
+    if external_eval:
+        evaluation(scheduler)
 
 
 def main(args):
@@ -182,5 +254,8 @@ if __name__ == "__main__":
 
     parser.add_argument('--eval-split-percentage', type=float, required=True,
                         help='Percentage of the validation data that should be held back for an additional evaluation loop.')
+    parser.add_argument('--only-post-training-eval', action='store_true',
+                        help='Set to disable the evaluation loop after each epoch and run evaluation once after the '
+                             'training concluded instead.')
 
     main(parser.parse_args())
