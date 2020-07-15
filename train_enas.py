@@ -72,7 +72,7 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
                                              num_workers=num_workers, shuffle=True)
             val_set = get_built_in_dataset(dataset_name, train=False, batch_size=batch_size,
                                            num_workers=num_workers, shuffle=True)
-        if isinstance(train_set, gluon.data.Dataset):
+        if isinstance(train_set, mx.gluon.data.Dataset):
             # split the validation set into an evaluation and validation set
             val_dataset, eval_dataset = split_val_data(val_set)
 
@@ -86,7 +86,7 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
             eval_set = DataLoader(
                     eval_dataset, batch_size=batch_size, shuffle=True,
                     num_workers=num_workers, prefetch=0, sample_times=10)  # sample_times = ENASScheduler controller_batchsize
-        elif isinstance(train_set, gluon.data.dataloader.DataLoader):
+        elif isinstance(train_set, mx.gluon.data.dataloader.DataLoader):
             val_dataset, eval_dataset = split_val_data(val_set._dataset)
 
 
