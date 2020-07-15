@@ -140,6 +140,9 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
                 print('Trainable model has been exported to {}'.format(export_dir))
 
     def evaluation(sched):
+        from tqdm import tqdm
+
+        print('------------------- Running post training evaluation -------------------')
         if hasattr(eval_set, 'reset'): eval_set.reset()
         # data iter, avoid memory leak
         it = iter(eval_set)
