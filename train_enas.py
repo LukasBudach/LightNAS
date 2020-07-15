@@ -156,6 +156,7 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
             sched.eval_fn(sched.supernet, batch, metric=metric, **sched.val_args)
             reward = metric.get()[1]
             tbar.set_description('Eval Acc: {}'.format(reward))
+        print('>> Evaluation Accuracy: {}'.format(reward))
 
 ########################################## Network Training ##########################################
 
