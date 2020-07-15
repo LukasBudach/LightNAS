@@ -166,12 +166,10 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
     x = mx.nd.random.uniform(shape=net_init_shape)
     net(x)
 
-   # if verbose:
-   #     print(net)
-   #     net.summary(x)
-
-    print(type(val_set))
-
+    if verbose:
+        print(net)
+        net.summary(x)
+        
     y = net.evaluate_latency(x)
     print('Average latency is {:.2f} ms, latency of the current architecture is {:.2f} ms'.format(net.avg_latency,
                                                                                                   net.latency))
