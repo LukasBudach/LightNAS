@@ -93,9 +93,13 @@ from .vgg import *
 
 from .mobilenet import *
 
+import sys
+sys.path.append('../')
+from models.meliusnet_custom import  *
+
 
 def get_model_parameters():
-    return [DenseNetParameters(), MeliusNetParameters(), VGGParameters(), ResNetEParameters()]
+    return [DenseNetParameters(), MeliusNetParameters(), MeliusNetCustomParameters(), VGGParameters(), ResNetEParameters()]
 
 
 def get_model(name, **kwargs):
@@ -160,6 +164,14 @@ def get_model(name, **kwargs):
               'meliusnet_a': meliusnet_a,
               'meliusnet_b': meliusnet_b,
               'meliusnet_c': meliusnet_c,
+              'meliusnet_custom': meliusnet_custom,
+              'meliusnet22_custom': meliusnet22_custom,
+              'meliusnet29_custom': meliusnet29_custom,
+              'meliusnet42_custom': meliusnet42_custom,
+              'meliusnet59_custom': meliusnet59_custom,
+              'meliusnet_a_custom': meliusnet_a_custom,
+              'meliusnet_b_custom': meliusnet_b_custom,
+              'meliusnet_c_custom': meliusnet_c_custom,
               'naivenet17': naivenet17,
               'squeezenet1.0': squeezenet1_0,
               'squeezenet1.1': squeezenet1_1,
