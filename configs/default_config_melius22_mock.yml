@@ -1,4 +1,4 @@
-batch_size: 20
+batch_size: 2
 config: configs/default_config_melius22_mock.yml
 data_dir: null
 dataset: null
