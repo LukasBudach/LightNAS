@@ -49,11 +49,11 @@ class MeliusNetCustom(MeliusNet):
         self.reduction_rates = reduction
         self.config_string=config_string
 
-        if block_config is not None:
-            warnings.warn("Attention, the MeliusNetCustom block_config constructor parameter is not None."
+        if block_config is not [-1,-1,-1,-1]:
+            warnings.warn("Attention, the MeliusNetCustom block_config constructor parameter is not [-1,-1,-1,-1]."
                          " This parameter only exists for backward compatibility but isn't used anymore"
-                         " because the configuration is read from the config_string. Make sure that you are using the"
-                         " MeliusNetCustom class in the correct way.")
+                         " because the configuration is read from the config_string. Make sure you understand how the"
+                         " MeliusNetCustom class should be used.")
 
         with self.name_scope():
             self.features = nn.HybridSequential(prefix='')
@@ -62,8 +62,8 @@ class MeliusNetCustom(MeliusNet):
             self.num_features = num_init_features
             if self.config_string.count("T") != 3:
                 raise Exception("config_string must contain exactly 3 tansition layers")
-            self.num_meliusnet_block_configs = self.config_string.split('T')
-            for i,block_string in enumerate(self.num_meliusnet_block_configs):
+            self.meliusnet_block_configs = self.config_string.split('T')
+            for i,block_string in enumerate(self.meliusnet_block_configs):
                 self._make_repeated_base_blocks(block_string, i)
                 if i != len(block_config) - 1:
                     self._make_transition(i)

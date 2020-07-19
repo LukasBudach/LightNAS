@@ -23,7 +23,7 @@ dataset_prop = {
 }
 
 
-def create_mock_gluon_image_dataset(num_samples=100, img_width=32, img_height=32, num_channels=3, num_classes=10):
+def create_mock_gluon_image_dataset(num_samples=40, img_width=32, img_height=32, num_channels=3, num_classes=10):
     X = nd.random.uniform(shape=(num_samples,num_channels,img_height,img_width))
     y = nd.random.randint(0, num_classes, shape=(num_samples,1))
     train_dataset = mx.gluon.data.dataset.ArrayDataset(X,y)
@@ -32,7 +32,7 @@ def create_mock_gluon_image_dataset(num_samples=100, img_width=32, img_height=32
     return train_dataset, val_dataset
 
 
-def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', val_set=None,
+def train_net_enas(net, epochs, training_name, batch_size=64, train_set='cifar100', val_set=None,
                    num_gpus=0, num_workers=4, net_init_shape=(1, 3, 32, 32), export_to_inference=True,
                    export_to_trainable=True, export_model_name='teste01', verbose=True, custom_batch_fn=None,
                    eval_split_pct=0.5, external_eval=False):
@@ -71,13 +71,12 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
 
         if isinstance(train_set, str):
             train_set = get_built_in_dataset(train_set, train=True, batch_size=batch_size,
-                                             num_workers=num_workers, shuffle=True)
+                                             num_workers=num_workers, shuffle=True, fine_label=True)
             val_set = get_built_in_dataset(val_set, train=False, batch_size=batch_size,
-                                           num_workers=num_workers, shuffle=True)
+                                           num_workers=num_workers, shuffle=True, fine_label=True)
         if isinstance(train_set, mx.gluon.data.Dataset):
             # split the validation set into an evaluation and validation set
             val_dataset, eval_dataset = split_val_data(val_set)
-
             train_set = DataLoader(
                     train_set, batch_size=batch_size, shuffle=True,
                     last_batch="discard", num_workers=num_workers)
@@ -100,6 +99,7 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
 
 ########################################## Functions ##########################################
     def save_graph_val_fn(supernet, epoch):
+        train_dir = Path('./trainings/{}'.format(training_name))
         viz_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.dot')
         txt_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.txt')
 
@@ -115,6 +115,7 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
         txt_file.close()
 
     def save_model(supernet, epoch):
+        train_dir = Path('./trainings/{}'.format(training_name))
         if export_model_name is None:
             raise ValueError('If you are exporting your model, you must provide the model name as argument')
 
@@ -178,7 +179,8 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
     scheduler = ENAS_Scheduler(net, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3, plot_frequency=10,
                                update_arch_frequency=5, post_epoch_fn=save_graph_val_fn, post_epoch_save=save_model,
-                               custom_batch_fn = custom_batch_fn, num_cpus=num_workers, eval_split_pct=eval_split_pct)
+                               custom_batch_fn = custom_batch_fn, num_cpus=num_workers, eval_split_pct=eval_split_pct,
+                               tensorboard_log_dir='./tensorboard_logs/', training_name=training_name)
     scheduler.run()
 
     if external_eval:
@@ -210,7 +212,7 @@ def main(args):
     training_name = args.training_name if args.training_name is not None else args.model + '_{}_{}_{}_{}_{}'\
         .format(now.year, now.month, now.day, now.hour, now.minute)
     train_net_enas(globals()[args.model](**kwargs).enas_sequential, args.epochs,
-                   train_dir=Path('./trainings/{}'.format(training_name)), train_set=train_set, val_set=val_set,
+                   training_name=training_name, train_set=train_set, val_set=val_set,
                    batch_size=args.batch_size, num_gpus=args.num_gpus, num_workers=args.num_workers,
                    net_init_shape=init_shape, verbose=args.verbose, export_model_name=args.export_model_name,
                    export_to_inference=args.export_to_inference, export_to_trainable=args.export_to_trainable,
