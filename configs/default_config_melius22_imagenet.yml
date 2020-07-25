@@ -17,3 +17,4 @@ training_name: null
 use_bmx_examples_datasets: false
 augmentation: medium
 verbose: true
+grad_cancel: 1.0
