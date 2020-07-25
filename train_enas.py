@@ -46,6 +46,8 @@ def train_net_enas(net, epochs, training_name, batch_size=64, train_set='cifar10
     else:
         option = ['ignore']
 
+    train_dir = Path('./trainings/{}'.format(training_name))
+
     if external_eval:
         from autogluon.task.image_classification.dataset import get_built_in_dataset
         from autogluon.utils.dataloader import DataLoader
@@ -99,7 +101,6 @@ def train_net_enas(net, epochs, training_name, batch_size=64, train_set='cifar10
 
 ########################################## Functions ##########################################
     def save_graph_val_fn(supernet, epoch):
-        train_dir = Path('./trainings/{}'.format(training_name))
         viz_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.dot')
         txt_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.txt')
 
@@ -115,7 +116,6 @@ def train_net_enas(net, epochs, training_name, batch_size=64, train_set='cifar10
         txt_file.close()
 
     def save_model(supernet, epoch):
-        train_dir = Path('./trainings/{}'.format(training_name))
         if export_model_name is None:
             raise ValueError('If you are exporting your model, you must provide the model name as argument')
 
@@ -176,11 +176,13 @@ def train_net_enas(net, epochs, training_name, batch_size=64, train_set='cifar10
     y = net.evaluate_latency(x)
     print('Average latency is {:.2f} ms, latency of the current architecture is {:.2f} ms'.format(net.avg_latency,
                                                                                                   net.latency))
+    checkpoint_name = train_dir / 'enas_checkpoint/checkpoint.ag'
     scheduler = ENAS_Scheduler(net, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3, plot_frequency=10,
                                update_arch_frequency=5, post_epoch_fn=save_graph_val_fn, post_epoch_save=save_model,
                                custom_batch_fn = custom_batch_fn, num_cpus=num_workers, eval_split_pct=eval_split_pct,
-                               tensorboard_log_dir='./tensorboard_logs/', training_name=training_name)
+                               tensorboard_log_dir='./tensorboard_logs/', training_name=training_name,
+                               checkname=checkpoint_name)
     scheduler.run()
 
     if external_eval:
@@ -211,6 +213,8 @@ def main(args):
     now = datetime.now()
     training_name = args.training_name if args.training_name is not None else args.model + '_{}_{}_{}_{}_{}'\
         .format(now.year, now.month, now.day, now.hour, now.minute)
+    if args.model.startswith('resnet'):
+        kwargs['grad_cancel'] = args.grad_cancel
     train_net_enas(globals()[args.model](**kwargs).enas_sequential, args.epochs,
                    training_name=training_name, train_set=train_set, val_set=val_set,
                    batch_size=args.batch_size, num_gpus=args.num_gpus, num_workers=args.num_workers,
@@ -265,5 +269,7 @@ if __name__ == "__main__":
     parser.add_argument('--only-post-training-eval', action='store_true',
                         help='Set to disable the evaluation loop after each epoch and run evaluation once after the '
                              'training concluded instead.')
+    parser.add_argument('--grad-cancel', type=float,
+                        help='Upper threshold for 1 bit convolution gradient (For now only for resnet relevant).')
 
     main(parser.parse_args())

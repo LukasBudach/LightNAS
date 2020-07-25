@@ -1,1 +1,1 @@
-tensorboard --logdir=../tensorboard_logs --host=127.0.0.1 --port=8989
+tensorboard --logdir=../tensorboard_logs --host=127.0.0.1 --port=8989 --samples_per_plugin images=1000
