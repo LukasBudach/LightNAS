@@ -10,7 +10,8 @@ initial_layers: imagenet
 mock: null
 model: meliusnet22_enas
 num_gpus: 1
+num_workers: 2
 training_name: null
-use_bmx_examples_datasets: true
+use_bmx_examples_datasets: false
 augmentation: medium
 verbose: true

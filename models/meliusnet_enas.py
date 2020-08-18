@@ -33,7 +33,7 @@ __all__ = ['MeliusNetEnas', 'ImprovementBlockEnas',
            'meliusnet_a_enas', 'meliusnet_b_enas', 'meliusnet_c_enas']
 
 # Blocks
-#@enas_unit(replace_by_skip_connection=ag.space.Categorical(True, False))
+@enas_unit(replace_by_skip_connection=ag.space.Categorical(True, False))
 class ImprovementBlockEnas(HybridBlock):
     r"""ImprovementBlock which improves the last n channels"""
 

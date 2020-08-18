@@ -78,7 +78,7 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
             if decision == 'inference':
                 export_dir = train_dir / 'exported_models/inference_only'
                 export_dir.mkdir(parents=True, exist_ok=True)
-                hybnet.export(export_dir / export_model_name, epoch=epoch)
+                hybnet.export(export_dir / Path(str(export_model_name) + str(epoch)), epoch=epoch)
                 print('Inference model has been exported to {}'.format(export_dir))
             if decision == 'trainable':
                 export_dir = train_dir / 'exported_models/trainables'
