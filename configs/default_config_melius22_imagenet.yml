@@ -3,6 +3,7 @@ config: configs/default_config_melius22_imagenet.yml
 data_dir: /mnt/ssd/datasets/ImageNet/extracted/rec
 dataset: imagenet
 epochs: 100
+eval_split_percentage: 0.3
 export_model_name: model
 export_to_inference: true
 export_to_trainable: true
@@ -11,7 +12,9 @@ mock: null
 model: meliusnet22_enas
 num_gpus: 1
 num_workers: 2
+only_post_training_eval: true
 training_name: null
 use_bmx_examples_datasets: false
 augmentation: medium
 verbose: true
+grad_cancel: 1.0

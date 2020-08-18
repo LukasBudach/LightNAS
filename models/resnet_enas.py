@@ -70,7 +70,7 @@ class BasicBlockV1Enas(HybridBlock):
         Number of input channels. Default is 0, to infer from the graph.
     """
 
-    def __init__(self, channels, stride, downsample=False, in_channels=0, init=True, bits=1,
+    def __init__(self, channels, stride, downsample=False, in_channels=0, init=True, bits=1, grad_cancel=1.0,
                  parameter_sharing_partner=None, **kwargs):
         if parameter_sharing_partner:
             super().__init__(params = parameter_sharing_partner.params, **kwargs)
@@ -80,6 +80,7 @@ class BasicBlockV1Enas(HybridBlock):
         self.stride = stride
         self.in_channels = in_channels
         self.bits = bits
+        self.grad_cancel = grad_cancel
 
         conv1_weights = None
         conv2_weights = None
@@ -105,7 +106,8 @@ class BasicBlockV1Enas(HybridBlock):
 
     def _init(self, parameter_sharing_partner=None, conv1_weights=None, conv2_weights=None, downsample_conv_weights=None):
         with self.name_scope():
-            with set_binary_layer_config(bits = self.bits, bits_a=self.bits):
+            grad_cancel = self.grad_cancel if self.bits==1 else 2**31
+            with set_binary_layer_config(bits = self.bits, bits_a=self.bits, grad_cancel=grad_cancel):
                 self.body.add(activated_conv(self.channels, kernel_size=3, stride=self.stride, padding=1,
                                                 in_channels=self.in_channels, params=conv1_weights))
                 self.body.add(nn.BatchNorm())
@@ -145,7 +147,8 @@ class BottleneckV1Enas(HybridBlock):
         Number of input channels. Default is 0, to infer from the graph.
     """
 
-    def __init__(self, channels, stride,downsample=False, in_channels=0, bits=1, parameter_sharing_partner=None,
+    def __init__(self, channels, stride,downsample=False, in_channels=0, bits=1, grad_cancel=1.0,
+                 parameter_sharing_partner=None,
                  **kwargs):
         if parameter_sharing_partner:
             super().__init__(params=parameter_sharing_partner.params, **kwargs)
@@ -163,8 +166,8 @@ class BottleneckV1Enas(HybridBlock):
             if downsample:
                 self.downsample_conv_weights = parameter_sharing_partner.downsample_conv_weights
 
-
-        with set_binary_layer_config(bits = self.bits, bits_a=self.bits):
+        grad_cancel = grad_cancel if self.bits == 1 else 2 ** 31
+        with set_binary_layer_config(bits = self.bits, bits_a=self.bits, grad_cancel=grad_cancel):
             self.body = nn.HybridSequential(prefix='')
             self.body.add(QConv2D(channels // 4, kernel_size=1, strides=stride, params=self.conv1_weights))
             self.body.add(nn.BatchNorm())
@@ -225,7 +228,7 @@ class BasicBlockV2Enas(HybridBlock):
         Number of input channels. Default is 0, to infer from the graph.
     """
 
-    def __init__(self, channels, stride, downsample=False, in_channels=0, init=True, bits=1,
+    def __init__(self, channels, stride, downsample=False, in_channels=0, init=True, bits=1, grad_cancel=1.0,
                  parameter_sharing_partner=None, **kwargs):
         if parameter_sharing_partner:
             super().__init__(params=parameter_sharing_partner.params, **kwargs)
@@ -235,6 +238,7 @@ class BasicBlockV2Enas(HybridBlock):
         self.stride = stride
         self.bits = bits
         self.in_channels = in_channels
+        self.grad_cancel = grad_cancel
 
         self.bn = nn.BatchNorm()
         self.body = nn.HybridSequential(prefix='')
@@ -257,7 +261,8 @@ class BasicBlockV2Enas(HybridBlock):
             self._init(parameter_sharing_partner)
 
     def _init(self, parameter_sharing_partner=None):
-        with set_binary_layer_config(bits = self.bits, bits_a=self.bits):
+        grad_cancel = self.grad_cancel if self.bits == 1 else 2 ** 31
+        with set_binary_layer_config(bits = self.bits, bits_a=self.bits, grad_cancel=grad_cancel):
             self.body.add(activated_conv(self.channels, kernel_size=3, stride=self.stride, padding=1,
                                             in_channels=self.in_channels, params=self.conv1_weights))
             self.body.add(nn.BatchNorm())
@@ -308,8 +313,8 @@ class BottleneckV2Enas(HybridBlock):
         Number of input channels. Default is 0, to infer from the graph.
     """
 
-    def __init__(self, channels, stride, downsample=False, in_channels=0, bits=1, parameter_sharing_partner=None,
-                 **kwargs):
+    def __init__(self, channels, stride, downsample=False, in_channels=0, bits=1, grad_cancel=1.0,
+                 parameter_sharing_partner=None, **kwargs):
         if parameter_sharing_partner:
             super().__init__(params=parameter_sharing_partner.params, **kwargs)
         else:
@@ -326,7 +331,8 @@ class BottleneckV2Enas(HybridBlock):
             if downsample:
                 self.downsample_conv_weights = parameter_sharing_partner.downsample_conv_weights
 
-        with set_binary_layer_config(bits = self.bits, bits_a=self.bits):
+        grad_cancel = grad_cancel if self.bits == 1 else 2 ** 31
+        with set_binary_layer_config(bits = self.bits, bits_a=self.bits, grad_cancel=grad_cancel):
             self.bn1 = nn.BatchNorm()
             self.conv1 = QConv2D(channels // 4, kernel_size=1, strides=1, use_bias=False, params=self.conv1_weights)
             self.bn2 = nn.BatchNorm()
@@ -372,15 +378,17 @@ class BottleneckV2Enas(HybridBlock):
 
 
 class ResNetEnas():
-    def __init__(self, channels, classes, **kwargs):
+    def __init__(self, channels, classes, grad_cancel=1.0, **kwargs):
         super().__init__(**kwargs)
         self.features = []
         self.output = nn.Dense(classes, in_units=channels[-1])
+        self.grad_cancel = grad_cancel
 
     r"""Helper methods which are equal for both resnets"""
     def _make_layer(self, block, num_layers, channels, stride, stage_index, in_channels=0):
         layers = []
-        layers.append(block(channels, stride, channels != in_channels, in_channels=in_channels, prefix=''))
+        layers.append(block(channels, stride, channels != in_channels, in_channels=in_channels, prefix='',
+                            grad_cancel=self.grad_cancel))
         for _ in range(num_layers - 1):
             layers.append(block(channels, 1, False, in_channels=channels, prefix=''))
         return layers

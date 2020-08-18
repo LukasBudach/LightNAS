@@ -3,6 +3,7 @@ config: configs/default_config_resnet18_v1_enas_mock.yml
 data_dir: null
 dataset: cifar100
 epochs: 100
+eval_split_percentage: 0.3
 export_model_name: model
 export_to_inference: false
 export_to_trainable: true
@@ -10,7 +11,12 @@ initial_layers: thumbnail
 model: resnet18_v1_enas
 num_gpus: 1
 num_workers: 0
-training_name: resnet_enas
+only_post_training_eval: true
+training_name: null
 use_bmx_examples_datasets: false
 verbose: true
+<<<<<<< HEAD
 grad_cancel: 0.3
+=======
+grad_cancel: 1.0
+>>>>>>> master

@@ -43,11 +43,17 @@ all_blocks_on_params = '/home/padl20t4/LightNAS/trainings/meliusnet22_enas_2020_
 penalized_latency_json = '/home/padl20t4/LightNAS/trainings/meliusnet22_enas_2020_7_19_22_17/exported_models/inference_only/model0-symbol.json'
 penalized_latency_params  = '/home/padl20t4/LightNAS/trainings/meliusnet22_enas_2020_7_19_22_17/exported_models/inference_only/model0-0000.params'
 
+<<<<<<< HEAD
 all_blocks_on_without_hybridize_json = '../tmp/model99-symbol.json'
 all_blocks_on_without_hybridize_params = '../tmp/model99-0099.params'
 
 json_filepath = all_blocks_on_without_hybridize_json
 params_filepath = all_blocks_on_without_hybridize_params
+=======
+
+json_filepath = penalized_latency_json
+params_filepath = penalized_latency_params
+>>>>>>> master
 
 ctx = mx.gpu(int(0))
 print("ctx:",ctx)
@@ -93,6 +99,7 @@ for data, label in val_data:
 
 #     break
 
+<<<<<<< HEAD
     predictions = result.asnumpy()
     ground_truth = label.asnumpy()
 
@@ -105,3 +112,18 @@ for data, label in val_data:
 print("Correct: {:d}, Wrong: {:d}".format(num_correct, num_wrong))
 print("Accuracy: {:.2f}%".format(100 * num_correct / (num_correct + num_wrong)))
 print("Total time:", time.time()-total_time)
+=======
+#     probabilities = result.softmax().asnumpy()
+#     ground_truth = label.asnumpy()
+
+#     predictions = np.argmax(probabilities, axis=1)
+#     likeliness = np.max(probabilities, axis=1)
+
+
+#     num_correct += np.sum(predictions == ground_truth)
+#     num_wrong += np.sum(predictions != ground_truth)
+
+# print("Correct: {:d}, Wrong: {:d}".format(num_correct, num_wrong))
+# print("Accuracy: {:.2f}%".format(100 * num_correct / (num_correct + num_wrong)))
+# print("Total time:", time.time()-total_time)
+>>>>>>> master
