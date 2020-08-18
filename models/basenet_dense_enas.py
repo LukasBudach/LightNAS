@@ -15,7 +15,7 @@ from autogluon.contrib.enas import *
 from bmxnet_examples.binary_models.model_parameters import ModelParameters
 
 
-@enas_unit(replace_by_skip_connection=ag.space.Categorical(True, False))
+@enas_unit(replace_by_skip_connection=ag.space.Categorical(False))
 class DenseBlockEnas(HybridBlock):
 
     def __init__(self, growth_rate, dilation, bn_size, dropout, replace_by_skip_connection=False, **kwargs):

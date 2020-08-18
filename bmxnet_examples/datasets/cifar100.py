@@ -31,10 +31,10 @@ class Cifar100(Dataset):
         ])
 
         train_data = gluon.data.DataLoader(
-            gluon.data.vision.CIFAR100(train=True).transform_first(transform_train),
+            gluon.data.vision.CIFAR100(train=True,fine_label=True).transform_first(transform_train),
             batch_size=opt.batch_size, shuffle=True, last_batch='discard', num_workers=opt.num_workers)
 
         val_data = gluon.data.DataLoader(
-            gluon.data.vision.CIFAR100(train=False).transform_first(transform_test),
+            gluon.data.vision.CIFAR100(train=False,fine_label=True).transform_first(transform_test),
             batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_workers)
         return train_data, val_data, batch_fn

@@ -17,6 +17,7 @@
 
 from __future__ import division
 
+import os
 import math
 import sys
 from functools import reduce

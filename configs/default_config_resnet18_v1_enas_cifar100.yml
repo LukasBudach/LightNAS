@@ -13,3 +13,4 @@ num_workers: 0
 training_name: resnet_enas
 use_bmx_examples_datasets: false
 verbose: true
+grad_cancel: 0.3

@@ -87,6 +87,32 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
                                            .with_suffix('.params').resolve()))
                 print('Trainable model has been exported to {}'.format(export_dir))
 
+
+    def evaluation(sched):
+        from tqdm import tqdm
+
+        print('------------------- Running post training evaluation -------------------')
+        if hasattr(eval_set, 'reset'): eval_set.reset()
+        # data iter, avoid memory leak
+        it = iter(eval_set)
+        if hasattr(it, 'reset_sample_times'): it.reset_sample_times()
+        tbar = tqdm(it)
+        # update network arc
+        config = sched.controller.inference()
+        sched.supernet.sample(**config)
+        metric = mx.metric.Accuracy()
+        for batch in tbar:
+            sched.eval_fn(sched.supernet, batch, metric=metric, **sched.val_args)
+            reward = metric.get()[1]
+            tbar.set_description('Eval Acc: {}'.format(reward))
+        print('>> Evaluation Accuracy: {}'.format(reward))
+
+    def custom_reward_fn(metric, net):
+        reward = metric
+        return reward
+
+########################################## Network Training ##########################################
+
     # net is an ENAS_Sequential object
     net.initialize()
     # create an initial input for the network with the same dimensions as the data from the given train and val datasets
@@ -103,7 +129,9 @@ def train_net_enas(net, epochs, train_dir, batch_size=64, train_set='cifar100', 
     scheduler = ENAS_Scheduler(net, train_set=train_set, val_set=val_set, batch_size=batch_size, num_gpus=num_gpus,
                                warmup_epochs=0, epochs=epochs, controller_lr=3e-3, plot_frequency=10,
                                update_arch_frequency=5, post_epoch_fn=save_graph_val_fn, post_epoch_save=save_model,
-                               custom_batch_fn = custom_batch_fn, num_cpus=num_workers)
+                               custom_batch_fn = custom_batch_fn, num_cpus=num_workers, eval_split_pct=eval_split_pct,
+                               tensorboard_log_dir='./tensorboard_logs/', training_name=training_name,
+                               checkname=checkpoint_name, reward_fn=custom_reward_fn)
     scheduler.run()
 
 
