@@ -35,7 +35,7 @@ def create_mock_gluon_image_dataset(num_samples=20, img_width=32, img_height=32,
 def train_net_enas(net, epochs, training_name, batch_size=64, train_set='cifar100', val_set=None,
                    num_gpus=0, num_workers=4, net_init_shape=(1, 3, 32, 32), export_to_inference=True,
                    export_to_trainable=True, export_model_name='teste01', verbose=True, custom_batch_fn=None,
-                   eval_split_pct=0.5, external_eval=False, hybridize_supernet=True):
+                   eval_split_pct=0.5, external_eval=False):
 
     if export_to_inference and export_to_trainable:
         option = ['inference', 'trainable']
@@ -182,7 +182,7 @@ def train_net_enas(net, epochs, training_name, batch_size=64, train_set='cifar10
                                update_arch_frequency=5, post_epoch_fn=save_graph_val_fn, post_epoch_save=save_model,
                                custom_batch_fn = custom_batch_fn, num_cpus=num_workers, eval_split_pct=eval_split_pct,
                                tensorboard_log_dir='./tensorboard_logs/', training_name=training_name,
-                               checkname=checkpoint_name, hybridize_supernet=hybridize_supernet)
+                               checkname=checkpoint_name)
     scheduler.run()
 
     if external_eval:
@@ -271,7 +271,5 @@ if __name__ == "__main__":
                              'training concluded instead.')
     parser.add_argument('--grad-cancel', type=float,
                         help='Upper threshold for 1 bit convolution gradient (For now only for resnet relevant).')
-    parser.add_argument('--hybridize-supernet', type=bool, help='ENAS supernet can be hybridized or not, '
-                                                                'this option may be relevant for debugging purposes.')
 
     main(parser.parse_args())
