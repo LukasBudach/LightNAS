@@ -1,1 +1,3 @@
 # LightNAS
+
+* Write down setup!
