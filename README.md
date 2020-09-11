@@ -26,3 +26,5 @@ For training you need to execute train_enas.py. There are some command line argu
 
 ## Further notes and trouble shooting
  - Our repository includes an only slightly modified copy of the [BMXNet examples repository](https://github.com/hpi-xnor/BMXNet-v2-examples)  in the directory bmxnet_examples/. For simplicity we went with a copy instead of a git submodule here since we had to do some minor adoptions which would not have been possible when keeping this repository as a submodule only. We still want to refer to the [BMXNet examples repository](https://github.com/hpi-xnor/BMXNet-v2-examples) for further information.
+ - If it seems that changes you did in the AutoGluon module are not applied it might be because you forgot to specify the ```develop``` argument during installing AutoGluon
+ - Problems might also arise is the submodules are not up to date. Use ```git status``` to get the status of the update and update them if necessary (e.g. by going in the submodule directories and calling ```git pull``` in the submodule directories you want to update.)
