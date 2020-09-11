@@ -87,7 +87,7 @@ def format_and_render(dot_file):
     graph.write_png(dot_file.with_suffix('.png'))
 
 
-def format_node(node):
+def format_node(node, base_architecture="meliusnet"):
     """ Formats the given node. Currently this is just adding colors based on the label, which represents all of the
     ENAS attributes chosen for any given node.
 
@@ -101,11 +101,20 @@ def format_node(node):
         return
     if attributes['label'] == 'node':
         return
-    # mix in the color for the skip attribute
-    if 'RTrue' in attributes['label']:
-        new_color = Color.mix(new_color, Color(r=50, g=255, b=50))
-    if 'RFalse' in attributes['label']:
-        new_color = Color.mix(new_color, Color(r=255, g=50, b=50))
+    if base_architecture == 'meliusnet':
+        # mix in the color for the skip attribute
+        if 'RTrue' in attributes['label']:
+            new_color = Color.mix(new_color, Color(r=50, g=255, b=50))
+        if 'RFalse' in attributes['label']:
+            new_color = Color.mix(new_color, Color(r=255, g=50, b=50))
+    elif base_architecture == "resnet":
+        if 'bits1' in attributes['label']:
+            new_color = Color.mix(new_color, Color(r=50, g=255, b=50))
+        if 'bits32' in attributes['label']:
+            new_color = Color.mix(new_color, Color(r=255, g=50, b=50))
+    else:
+        raise ValueError("Base architecture " + base_architecture +  "not supported")
+
     # possibly mix in colors for additionally ENAS attributes
     # ...
 
@@ -114,7 +123,7 @@ def format_node(node):
         node.set_color(new_color.as_hex())
 
 
-def format_graphs(graphs):
+def format_graphs(graphs, base_architecture="meliusnet"):
     """ Iterates through the given list of pydot.Dot objects. For each graph object, iterates over its nodes, formatting
     them.
 
@@ -126,7 +135,7 @@ def format_graphs(graphs):
     for graph in tqdm(graphs.values()):
         node_list = graph.get_node_list()
         for node in node_list:
-            format_node(node)
+            format_node(node, base_architecture=base_architecture)
 
 
 def write_graphs_to_pdf(graphs, out_dir=Path('./')):
@@ -139,9 +148,10 @@ def write_graphs_to_pdf(graphs, out_dir=Path('./')):
     :return: nothing
     """
     out_dir.mkdir(parents=True, exist_ok=True)
-    print('Writing graphs to PDF...')
+    print('Writing graphs to pdf an png files...')
     for graph_file in tqdm(graphs):
         graphs[graph_file].write_pdf(out_dir / (graph_file + '.pdf'))
+        graphs[graph_file].write_png(out_dir / (graph_file + '.png'))
 
 
 def main(arguments):
@@ -150,7 +160,7 @@ def main(arguments):
         prefix=arguments.prefix,
         min_epoch=0 if arguments.min_epoch is None else arguments.min_epoch,
         max_epoch=arguments.max_epoch)
-    format_graphs(graphs)
+    format_graphs(graphs, base_architecture=arguments.base_architecture)
     write_graphs_to_pdf(
         graphs=graphs,
         out_dir=Path(arguments.output_dir)
@@ -169,6 +179,8 @@ if __name__ == '__main__':
     parser.add_argument('--max-epoch', type=int, required=True, help='Last epoch to be read, inclusive.')
     parser.add_argument('-o', '--output-dir', type=str, required=False, help='Directory for the Graphs to be written to'
                                                                              ' after formating.')
+    parser.add_argument('--base-architecture', choices=["meliusnet", "resnet"], default="meliusnet")
+
 
     args = parser.parse_args()
     main(args)

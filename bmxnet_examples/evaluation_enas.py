@@ -43,9 +43,11 @@ all_blocks_on_params = '/home/padl20t4/LightNAS/trainings/meliusnet22_enas_2020_
 penalized_latency_json = '/home/padl20t4/LightNAS/trainings/meliusnet22_enas_2020_7_19_22_17/exported_models/inference_only/model0-symbol.json'
 penalized_latency_params  = '/home/padl20t4/LightNAS/trainings/meliusnet22_enas_2020_7_19_22_17/exported_models/inference_only/model0-0000.params'
 
+new_json = '/home/padl20t4/LightNAS/trainings/resnet18_v1_enas_2020_8_31_18_51/exported_models/inference_only/model99-symbol.json'
+new_params = '/home/padl20t4/LightNAS/trainings/resnet18_v1_enas_2020_8_31_18_51/exported_models/inference_only/model99-0099.params'
 
-json_filepath = penalized_latency_json
-params_filepath = penalized_latency_params
+json_filepath = new_json
+params_filepath = new_params
 
 ctx = mx.gpu(int(0))
 print("ctx:",ctx)
@@ -83,24 +85,24 @@ for data, label in val_data:
     data = mx.ndarray.cast(data=data, dtype='float32', out=None, name=None)
     result = deserialized_net(data.as_in_context(ctx))
 
-    print("Results:",result[0][15])
+    # print("Results:",result[0][15])
 
-    result = nd.argmax(result, axis=1)
-    result = mx.ndarray.cast(data=result, dtype='int', out=None, name=None)
-    print('Model predictions: ', result.asnumpy(), 'Label:', label)
+    # result = nd.argmax(result, axis=1)
+    # result = mx.ndarray.cast(data=result, dtype='int', out=None, name=None)
+    # print('Model predictions: ', result.asnumpy(), 'Label:', label)
 
 #     break
 
-#     probabilities = result.softmax().asnumpy()
-#     ground_truth = label.asnumpy()
+    probabilities = result.softmax().asnumpy()
+    ground_truth = label.asnumpy()
 
-#     predictions = np.argmax(probabilities, axis=1)
-#     likeliness = np.max(probabilities, axis=1)
+    predictions = np.argmax(probabilities, axis=1)
+    likeliness = np.max(probabilities, axis=1)
 
 
-#     num_correct += np.sum(predictions == ground_truth)
-#     num_wrong += np.sum(predictions != ground_truth)
+    num_correct += np.sum(predictions == ground_truth)
+    num_wrong += np.sum(predictions != ground_truth)
 
-# print("Correct: {:d}, Wrong: {:d}".format(num_correct, num_wrong))
-# print("Accuracy: {:.2f}%".format(100 * num_correct / (num_correct + num_wrong)))
-# print("Total time:", time.time()-total_time)
+print("Correct: {:d}, Wrong: {:d}".format(num_correct, num_wrong))
+print("Accuracy: {:.2f}%".format(100 * num_correct / (num_correct + num_wrong)))
+print("Total time:", time.time()-total_time)
