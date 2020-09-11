@@ -1,3 +1,8 @@
+'''
+This is a slightly adapted version of the binary_layers.py file of BMXNet. The adaptions make weight sharing for the
+ResNet ENAS training possible
+'''
+
 from functools import reduce
 from operator import mul
 

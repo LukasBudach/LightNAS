@@ -18,7 +18,7 @@
 # coding: utf-8
 # pylint: disable= arguments-differ
 
-"""MeliusNet constructed from config string, implemented in Gluon."""
+'''MeliusNet constructed from config string, implemented in Gluon.'''
 import warnings
 from mxnet.gluon import nn
 from mxnet.gluon.contrib.nn import HybridConcurrent, Identity
