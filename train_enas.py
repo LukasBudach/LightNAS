@@ -24,6 +24,21 @@ dataset_prop = {
 
 
 def create_mock_gluon_image_dataset(num_samples=20, img_width=32, img_height=32, num_channels=3, num_classes=10):
+    """ Creates a small dataset out of random data for fast and easy debugging and testing
+
+    :param num_samples: number of images in the dataset
+    :type num_samples: int
+    :param img_width: width of each image in the dataset in pixels
+    :type img_width: int
+    :param img_height: height of each image in the datast in pixels
+    :type img_height: int
+    :param num_channels: number of channels of each picture e.g. 3 to simulate RGB pictures
+    :type num_channels: int
+    :param num_channels: number of classes a picture can be classified as
+    :type num_channels: int
+    :return: tuple of two gluon datasets (one train- and one validation dataset)
+    :rtype: Tuple[mx.gluon.data.dataset.ArrayDataset, mx.gluon.data.dataset.ArrayDataset]
+    """
     X = nd.random.uniform(shape=(num_samples,num_channels,img_height,img_width))
     y = nd.random.randint(0, num_classes, shape=(num_samples,1))
     train_dataset = mx.gluon.data.dataset.ArrayDataset(X,y)
@@ -36,7 +51,45 @@ def train_net_enas(net, epochs, training_name, batch_size=64, train_set='cifar10
                    num_gpus=0, num_workers=4, net_init_shape=(1, 3, 32, 32), export_to_inference=True,
                    export_to_trainable=True, export_model_name='teste01', verbose=True, custom_batch_fn=None,
                    eval_split_pct=0.5, external_eval=False):
+    """ Main function for ENAS training of a given supernet.
 
+        :param net: The supernet
+        :type net: autogluon.contrib.enas.enas.ENAS_Sequential
+        :param training_name: name for the training, e.g. used to display training in tensorboard
+        :type training_name: str
+        :param batch_size: batch size for training the sampled architectures
+        :type batch_size: int
+        :param train_set: dataset used for training (e.g. cifar100)
+        :type train_set: str or mx.gluon.data.Dataset or mx.gluon.data.dataloader.DataLoader
+        :param val_set: dataset used for validation, if train_set is a string and val_set is non the validation data of
+        the dataset which name is given for train_set will be taken
+        :type val_set: NoneType or str or mx.gluon.data.Dataset or mx.gluon.data.dataloader.DataLoader
+        :param num_gpus: when given as integer the first num_gpus gpus of the machine are used when specified as tuple
+        the gpus given as the numbers in the tuple are used
+        :type num_gpus: int or Tuple
+        :param num_workers: number of threads used for controller sampling
+        :type num_workers: int
+        :param net_init_shape: shape of the network input, used for initilizing the network
+        :type net_init_shape: tuple
+        :param export_to_inference: whether symbol files of the trained architectures at the end of each epoche should
+        be written which than can be loaded and used for inference
+        :type export_to_inference: bool
+        :param export_to_trainable: If true only the trained parameters of the currently sampled network architecture
+        are written to disk at the end of each epoche
+        :type export_to_trainable: bool
+        :param export_model_name: file name of the exported models
+        :type export_model_name: str
+        :param verbose: whether additional information like the net summary should be printed during training
+        :type verbose: bool
+        :param custom_batch_fn: custom function for laoding batches from the dataset
+        :type custom_batch_fn: function or NoneType
+        :param eval_split_pct: percentage of the dataset which should be used for evaluating the accuracy
+        :type eval_split_pct: float
+        :param external_eval: whether the evaluation should happen during training or afterwards
+        :type external_eval: bool
+        :return: nothing
+    """
+    import pdb; pdb.set_trace()
     if export_to_inference and export_to_trainable:
         option = ['inference', 'trainable']
     elif export_to_inference:
@@ -55,6 +108,13 @@ def train_net_enas(net, epochs, training_name, batch_size=64, train_set='cifar10
         print('There will be post training evaluation and no post epoch evaluation!')
 
         def split_val_data(val_dataset):
+            """Splits the validation dataset in a validation and a test part. The validation part can then be used to
+            train the controller whereas the test dataset is only used for evaluating the network accuracy.
+
+            :param val_dataset: The orignally validation dataset which should be split
+            :type val_dataset: str or mx.gluon.data.Dataset or mx.gluon.data.dataloader.DataLoader
+            :return: nothing
+            """
             eval_part = round(len(val_dataset) * eval_split_pct)
             print('The first {}% of the validation dataset will be held back for evaluation instead.'.format(eval_split_pct*100))
             eval_dataset = tuple([[], []])
@@ -101,6 +161,13 @@ def train_net_enas(net, epochs, training_name, batch_size=64, train_set='cifar10
 
 ########################################## Functions ##########################################
     def save_graph_val_fn(supernet, epoch):
+        """Callback function for saving a visualization of the currently sampled architecture at the end of each epoch.
+        :param supernet: The supernet in its current state
+        :type supernet: autogluon.contrib.enas.enas.ENAS_Sequential
+        :param epoch: the current epoch
+        :type epoch: int
+        :return: nothing
+        """
         viz_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.dot')
         txt_filepath = (train_dir / ('logs/architectures/epoch_' + str(epoch))).with_suffix('.txt')
 
@@ -116,6 +183,13 @@ def train_net_enas(net, epochs, training_name, batch_size=64, train_set='cifar10
         txt_file.close()
 
     def save_model(supernet, epoch):
+        """Callback function for saving the currently sampled architecture and its parameters
+        :param supernet: The supernet in its current state
+        :type supernet: autogluon.contrib.enas.enas.ENAS_Sequential
+        :param epoch: the current epoch
+        :type epoch: int
+        :return: nothing
+        """
         if export_model_name is None:
             raise ValueError('If you are exporting your model, you must provide the model name as argument')
 
@@ -143,6 +217,11 @@ def train_net_enas(net, epochs, training_name, batch_size=64, train_set='cifar10
                 print('Trainable model has been exported to {}'.format(export_dir))
 
     def evaluation(sched):
+        """Evaluates the finally trained architecture using the held out test dataset.
+        :param sched: The ENAS_Scheduler containing the trained supernet
+        :type supernet: autogluon.contrib.enas.enas.ENAS_Scheduler
+        :return: nothing
+        """
         from tqdm import tqdm
 
         print('------------------- Running post training evaluation -------------------')
@@ -190,6 +269,11 @@ def train_net_enas(net, epochs, training_name, batch_size=64, train_set='cifar10
 
 
 def main(args):
+    """Main function mainly doing some arg parsing, dataset initialization and starting the ENAS training
+    :param args: The arguments used to configure the ENAS training
+    :type args: argparse.Namespace
+    :return: nothing
+    """
     # define additional arguments for the network construction
     kwargs = {'initial_layers': args.initial_layers}
     if args.dataset is not None:
