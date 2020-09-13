@@ -36,6 +36,12 @@ Additional results can be found in the *trainings/* directory. In there, a new f
  - *logs/* directory, containing a visualization of the final sampled architecture for each epoch
  - *exported_models/* directory, containing symbol files and parameters of the sampled and trained architecture for each epoch
  - *enas_checkpoint/* directory, containing the last checkpoint of the ENAS training, which stores the state of the ENAS training and could be used to continue a training later on
+ 
+ There also exists the possibility to recreate a MeliusNet architecture found by ENAS and train it from scratch using the original *image_classification.py* script from the bmxnet_examples repository. For example for creating and training a custom MeliusNet-22 just call the *image_classification.py* script which can be found in the *bmxnet_examples/* folder with the following arguments:
+
+ - ```\-\-model meliusnet22_custom```
+ - ```\-\-config-string DIDIDIDITDIDIDIDIDITDIDIDIDITDIDIDIDI```  In  such a configuration string ```D``` stands for a dense block, ```I``` stands for an improvement block and ```T``` marks a transition block (you can find further information about the block types in the [MeliusNet paper](https://arxiv.org/pdf/2001.05936.pdf))
+ - all other arguments required to start a training like described in the [BMXNet-wiki](https://github.com/hpi-xnor/BMXNet-v2-wiki/blob/master/hyperparameters.md)
 
 
 ## Further notes and trouble shooting
