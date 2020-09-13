@@ -10,7 +10,7 @@ In the ENAS training of MeliusNet, we allow the controller to either use or skip
 
 For external testing and architecture reproduction, we implemented a way to define a custom MeliusNet consisting of Dense Blocks, Improvement Blocks and 1x1 Convolutions using a string. The Identity Blocks are left out, as adding them has no effect on the network. This custom MeliusNet is integrated in our modified BMXNet Examples by having been registered in *bmxnet_examples/binary_models/\_\_init\_\_.py*
 
-An example network configuration string would be **DTSI**. This string corresponds to the network architecture Initial layers - **D**enseBlock - Skip ImprovementBlock (left out) - **T**ranstition Layer - **S**kip Dense (1x1 Convolution) - **I**mprovementBlock - final layers
+See our root README file for further information on how to train a custom MeliusNet.
 
 ## ResNet
  
