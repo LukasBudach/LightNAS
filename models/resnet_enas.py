@@ -36,6 +36,7 @@ from mxnet.gluon.block import HybridBlock
 from mxnet.gluon import nn
 from mxnet import base
 
+#we use our custom implementation of the binary layers to allow for weight sharing between differnt binary convolutions
 from utils.binary_layers import BinaryLayerConfig
 from utils.binary_layers import set_binary_layer_config
 from utils.binary_layers import activated_conv, QConv2D

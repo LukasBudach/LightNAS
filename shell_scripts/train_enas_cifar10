@@ -1,1 +1,0 @@
-python ../train_enas.py  --model=meliusnet22_enas --batch-size 2 --epochs 100 --initial-layers thumbnail --num-gpus 1 --dataset cifar10 --use-bmx-examples-datasets=True --num-classes 10 --verbose True
