@@ -1,4 +1,3 @@
-
 # LightNAS
 
 ## Installation
@@ -41,6 +40,7 @@ Additional results can be found in the *trainings/* directory. In there, a new f
 
 ## Further notes and trouble shooting
  - Our repository includes an only slightly modified copy of the [BMXNet examples repository](https://github.com/hpi-xnor/BMXNet-v2-examples)  in the directory *bmxnet_examples/*. For simplicity, we went with a copy instead of a git submodule here, since we had to do some minor adoptions which would not have been possible when keeping this repository as a submodule only. We still want to refer to the [BMXNet examples repository](https://github.com/hpi-xnor/BMXNet-v2-examples) for further information.
+ - The models of MeliusNet and ResNet, which were customized to work with ENAS can be found in the *models/* directory. For more information, look into the README in that directory.
  - Under *visualization/* there exists a script called *color_graphs.py* which can be used for additional formatting and rendering of the graphs of found architectures which are written to the *logs/* folder of a training
  - If it seems like changes you did in the AutoGluon module are not applied it might be because you forgot to specify the ```develop``` argument during installing AutoGluon
  - Problems might also arise if the submodules are not up to date. Use ```git status``` to get the status of the update and update them if necessary (e.g. by going in the submodule directories and calling ```git pull``` in the submodule directories you want to update. It may be required to specify from where to pull, in that case call ```git pull origin master```)
