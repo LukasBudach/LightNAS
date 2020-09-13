@@ -129,7 +129,7 @@ class MeliusNetCustomParameters(MeliusNetParameters):
         return model.startswith('meliusnet') and '_custom' in model
 
     def _add_arguments(self, parser):
-        parser.add_argument('--config-string', type=str, default=None,
+        parser.add_argument('--config-string', type=str, required=True,
                             help='Block config to build the custom meliusnet from '
                                  '(e.g. DIDIDIDITDIDIDIDIDITDIDIDIDITDIDIDIDI')
 
